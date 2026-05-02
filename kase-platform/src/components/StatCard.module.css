@@ -1,0 +1,79 @@
+.card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+.card:hover {
+  border-color: var(--border-brand);
+  box-shadow: var(--shadow-brand);
+  transform: translateY(-2px);
+}
+
+.iconWrap {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-glow);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.icon {
+  font-size: 1.25rem;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.label {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.value {
+  font-size: var(--text-xl);
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.trendValue {
+  font-weight: 600;
+}
+
+.up .trendValue {
+  color: var(--success);
+}
+
+.down .trendValue {
+  color: var(--error);
+}
+
+.neutral .trendValue {
+  color: var(--text-tertiary);
+}

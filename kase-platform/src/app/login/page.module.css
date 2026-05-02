@@ -1,0 +1,245 @@
+/* ========================================
+   Login Page Styles
+   ======================================== */
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  position: relative;
+  overflow: hidden;
+}
+
+.glow {
+  position: absolute;
+  top: -30%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 500px;
+  background: radial-gradient(ellipse at center, rgba(245, 166, 35, 0.06) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.gridBg {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 50px 50px;
+  mask-image: radial-gradient(ellipse 70% 50% at 50% 50%, black 20%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 50% at 50% 50%, black 20%, transparent 70%);
+}
+
+.card {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  padding: var(--space-10);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  text-align: center;
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.logoWrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-8);
+}
+
+.title {
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: var(--space-8);
+}
+
+/* ── Passkey Button ── */
+.passkeyBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: #0A1628;
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-light));
+  border: none;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-brand);
+  position: relative;
+  overflow: hidden;
+}
+
+.passkeyBtn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.passkeyBtn:hover::before {
+  opacity: 1;
+}
+
+.passkeyBtn:hover {
+  box-shadow: var(--shadow-brand-lg);
+  transform: translateY(-2px);
+}
+
+.passkeyBtn:active {
+  transform: translateY(0);
+}
+
+.passkeyBtnLoading {
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.passkeyIcon {
+  font-size: 1.3rem;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(10, 22, 40, 0.3);
+  border-top-color: #0A1628;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Divider ── */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+.divider span {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ── Alt button ── */
+.altBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.altBtn:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+/* ── Security Note ── */
+.securityNote {
+  margin-top: var(--space-6);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1.6;
+  padding: var(--space-3);
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.1);
+  border-radius: var(--radius-md);
+}
+
+/* ── Footer ── */
+.footer {
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.footerText {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+
+.footerLink {
+  font-size: var(--text-sm);
+  color: var(--brand-primary);
+  font-weight: 600;
+  transition: color var(--transition-fast);
+}
+
+.footerLink:hover {
+  color: var(--brand-light);
+}
+
+/* ── Legal ── */
+.legal {
+  position: relative;
+  margin-top: var(--space-8);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-align: center;
+  max-width: 400px;
+}
+
+/* ── Animations ── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+  .card {
+    padding: var(--space-6);
+  }
+}
