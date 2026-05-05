@@ -8,7 +8,7 @@ import styles from './DashboardLayout.module.css';
 const navItems = [
   { icon: '📊', label: 'Dashboard', href: '/dashboard' },
   { icon: '🚀', label: 'Ofertas', href: '/dashboard/ofertas' },
-  { icon: '🔄', label: 'Mercado', href: '/dashboard/mercado' },
+  { icon: '🏪', label: 'Marketplace', href: '/dashboard/mercado' },
   { icon: '💼', label: 'Portfólio', href: '/dashboard/portfolio' },
   { icon: '📄', label: 'Extrato', href: '/dashboard/extrato' },
 ];

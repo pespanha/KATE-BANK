@@ -7,6 +7,7 @@ export type AssetType = 'ON' | 'PN' | 'DEBT' | 'CONV' | 'REC';
 export type OrderSide = 'BUY' | 'SELL';
 export type OfferingStatus = 'ACTIVE' | 'FUNDED' | 'DRAFT' | 'CLOSED' | 'FAILED';
 export type KycStatus = 'APPROVED' | 'PENDING' | 'REJECTED';
+export type QuoteCurrency = 'BRL' | 'USDC' | 'BRZ';
 
 /* ── Interfaces ── */
 export interface User {
@@ -68,10 +69,26 @@ export interface SecondaryOrder {
   units: number;
   pricePerUnit: number;
   total: number;
+  quoteCurrency: QuoteCurrency;
   userId: string;
   userName: string;
+  userAvatar: string;
   createdAt: string;
-  status: 'OPEN' | 'FILLED' | 'CANCELLED';
+  expiresAt: string;
+  status: 'OPEN' | 'FILLED' | 'CANCELLED' | 'EXPIRED';
+  description?: string;
+}
+
+export interface AssetParity {
+  offeringId: string;
+  quoteCurrencies: QuoteCurrency[];
+}
+
+export interface FeeInfo {
+  gasPaidByPlatform: boolean;
+  makerFeePercent: number;
+  takerFeePercent: number;
+  feeCurrency: QuoteCurrency;
 }
 
 export interface Trade {
@@ -81,10 +98,12 @@ export interface Trade {
   units: number;
   pricePerUnit: number;
   total: number;
+  quoteCurrency: QuoteCurrency;
   buyerName: string;
   sellerName: string;
   makerFee: number;
   takerFee: number;
+  platformGasCost: number;
   createdAt: string;
 }
 
@@ -293,29 +312,45 @@ export const mockOfferings: Offering[] = [
   },
 ];
 
-/* ── Secondary Market Orders ── */
-export const mockBuyOrders: SecondaryOrder[] = [
-  { id: 'ord_b1', side: 'BUY', ticker: 'NVTC_ON', companyName: 'NovaTech', units: 100, pricePerUnit: 11.00, total: 1100, userId: 'usr_02', userName: 'Ana M.', createdAt: '2026-05-01 14:30', status: 'OPEN' },
-  { id: 'ord_b2', side: 'BUY', ticker: 'NVTC_ON', companyName: 'NovaTech', units: 250, pricePerUnit: 10.80, total: 2700, userId: 'usr_03', userName: 'Carlos R.', createdAt: '2026-05-01 13:15', status: 'OPEN' },
-  { id: 'ord_b3', side: 'BUY', ticker: 'NVTC_ON', companyName: 'NovaTech', units: 50, pricePerUnit: 10.50, total: 525, userId: 'usr_04', userName: 'Lucia F.', createdAt: '2026-05-01 11:00', status: 'OPEN' },
-  { id: 'ord_b4', side: 'BUY', ticker: 'NVTC_ON', companyName: 'NovaTech', units: 500, pricePerUnit: 10.20, total: 5100, userId: 'usr_05', userName: 'Pedro S.', createdAt: '2026-04-30 16:45', status: 'OPEN' },
-  { id: 'ord_b5', side: 'BUY', ticker: 'NVTC_ON', companyName: 'NovaTech', units: 200, pricePerUnit: 10.00, total: 2000, userId: 'usr_06', userName: 'Maria L.', createdAt: '2026-04-30 10:20', status: 'OPEN' },
+/* ── Platform Fee Model ── */
+export const platformFees: FeeInfo = {
+  gasPaidByPlatform: true,
+  makerFeePercent: 0.5,
+  takerFeePercent: 1.0,
+  feeCurrency: 'BRL',
+};
+
+/* ── Asset Parities ── */
+export const assetParities: AssetParity[] = [
+  { offeringId: 'off_01', quoteCurrencies: ['BRL', 'USDC'] },
+  { offeringId: 'off_02', quoteCurrencies: ['BRL', 'USDC', 'BRZ'] },
+  { offeringId: 'off_03', quoteCurrencies: ['BRL'] },
+  { offeringId: 'off_04', quoteCurrencies: ['BRL', 'USDC'] },
+  { offeringId: 'off_05', quoteCurrencies: ['BRL', 'BRZ'] },
 ];
 
+/* ── Secondary Market — Marketplace Listings (Classificados) ── */
 export const mockSellOrders: SecondaryOrder[] = [
-  { id: 'ord_s1', side: 'SELL', ticker: 'NVTC_ON', companyName: 'NovaTech', units: 150, pricePerUnit: 11.30, total: 1695, userId: 'usr_07', userName: 'João P.', createdAt: '2026-05-01 15:00', status: 'OPEN' },
-  { id: 'ord_s2', side: 'SELL', ticker: 'NVTC_ON', companyName: 'NovaTech', units: 80, pricePerUnit: 11.50, total: 920, userId: 'usr_08', userName: 'Fernanda G.', createdAt: '2026-05-01 14:00', status: 'OPEN' },
-  { id: 'ord_s3', side: 'SELL', ticker: 'NVTC_ON', companyName: 'NovaTech', units: 300, pricePerUnit: 11.80, total: 3540, userId: 'usr_09', userName: 'Roberto M.', createdAt: '2026-05-01 12:30', status: 'OPEN' },
-  { id: 'ord_s4', side: 'SELL', ticker: 'NVTC_ON', companyName: 'NovaTech', units: 120, pricePerUnit: 12.00, total: 1440, userId: 'usr_10', userName: 'Camila A.', createdAt: '2026-04-30 17:00', status: 'OPEN' },
-  { id: 'ord_s5', side: 'SELL', ticker: 'NVTC_ON', companyName: 'NovaTech', units: 75, pricePerUnit: 12.50, total: 937.50, userId: 'usr_11', userName: 'Diego N.', createdAt: '2026-04-30 09:45', status: 'OPEN' },
+  { id: 'lst_s1', side: 'SELL', ticker: 'NVTC_ON', companyName: 'NovaTech Soluções', units: 150, pricePerUnit: 11.30, total: 1695, quoteCurrency: 'BRL', userId: 'usr_07', userName: 'João P.', userAvatar: 'JP', createdAt: '2026-05-01 15:00', expiresAt: '2026-05-08 15:00', status: 'OPEN', description: 'Vendendo para rebalancear portfólio. Aceito proposta.' },
+  { id: 'lst_s2', side: 'SELL', ticker: 'NVTC_ON', companyName: 'NovaTech Soluções', units: 80, pricePerUnit: 11.50, total: 920, quoteCurrency: 'BRL', userId: 'usr_08', userName: 'Fernanda G.', userAvatar: 'FG', createdAt: '2026-05-01 14:00', expiresAt: '2026-05-15 14:00', status: 'OPEN' },
+  { id: 'lst_s3', side: 'SELL', ticker: 'ENBR_PN', companyName: 'EnergyBR Renováveis', units: 200, pricePerUnit: 27.00, total: 5400, quoteCurrency: 'BRL', userId: 'usr_09', userName: 'Roberto M.', userAvatar: 'RM', createdAt: '2026-05-01 12:30', expiresAt: '2026-05-10 12:30', status: 'OPEN', description: 'Preciso de liquidez. Negociável.' },
+  { id: 'lst_s4', side: 'SELL', ticker: 'AGRP_DEBT', companyName: 'AgroPrime', units: 50, pricePerUnit: 101.00, total: 5050, quoteCurrency: 'USDC', userId: 'usr_10', userName: 'Camila A.', userAvatar: 'CA', createdAt: '2026-04-30 17:00', expiresAt: '2026-05-07 17:00', status: 'OPEN' },
+  { id: 'lst_s5', side: 'SELL', ticker: 'FNLP_CONV', companyName: 'FinLeap', units: 30, pricePerUnit: 74.50, total: 2235, quoteCurrency: 'BRL', userId: 'usr_11', userName: 'Diego N.', userAvatar: 'DN', createdAt: '2026-04-30 09:45', expiresAt: '2026-05-14 09:45', status: 'OPEN', description: 'Nota conversível com desconto. Oportunidade!' },
+];
+
+export const mockBuyOrders: SecondaryOrder[] = [
+  { id: 'lst_b1', side: 'BUY', ticker: 'NVTC_ON', companyName: 'NovaTech Soluções', units: 100, pricePerUnit: 11.00, total: 1100, quoteCurrency: 'BRL', userId: 'usr_02', userName: 'Ana M.', userAvatar: 'AM', createdAt: '2026-05-01 14:30', expiresAt: '2026-05-08 14:30', status: 'OPEN', description: 'Procuro lote de até 100 unidades.' },
+  { id: 'lst_b2', side: 'BUY', ticker: 'NVTC_ON', companyName: 'NovaTech Soluções', units: 250, pricePerUnit: 10.80, total: 2700, quoteCurrency: 'BRL', userId: 'usr_03', userName: 'Carlos R.', userAvatar: 'CR', createdAt: '2026-05-01 13:15', expiresAt: '2026-05-10 13:15', status: 'OPEN' },
+  { id: 'lst_b3', side: 'BUY', ticker: 'ENBR_PN', companyName: 'EnergyBR Renováveis', units: 100, pricePerUnit: 25.50, total: 2550, quoteCurrency: 'USDC', userId: 'usr_04', userName: 'Lucia F.', userAvatar: 'LF', createdAt: '2026-05-01 11:00', expiresAt: '2026-05-08 11:00', status: 'OPEN', description: 'Aceito parcelamento em USDC.' },
+  { id: 'lst_b4', side: 'BUY', ticker: 'AGRP_DEBT', companyName: 'AgroPrime', units: 20, pricePerUnit: 100.00, total: 2000, quoteCurrency: 'BRL', userId: 'usr_05', userName: 'Pedro S.', userAvatar: 'PS', createdAt: '2026-04-30 16:45', expiresAt: '2026-05-07 16:45', status: 'OPEN' },
 ];
 
 export const mockTrades: Trade[] = [
-  { id: 'trd_01', ticker: 'NVTC_ON', side: 'BUY', units: 100, pricePerUnit: 11.10, total: 1110, buyerName: 'Gabriel O.', sellerName: 'João P.', makerFee: 5.55, takerFee: 11.10, createdAt: '2026-05-01 10:30' },
-  { id: 'trd_02', ticker: 'ENBR_PN', side: 'SELL', units: 50, pricePerUnit: 26.00, total: 1300, buyerName: 'Ana M.', sellerName: 'Gabriel O.', makerFee: 6.50, takerFee: 13.00, createdAt: '2026-04-30 15:45' },
-  { id: 'trd_03', ticker: 'NVTC_ON', side: 'BUY', units: 200, pricePerUnit: 10.80, total: 2160, buyerName: 'Pedro S.', sellerName: 'Fernanda G.', makerFee: 10.80, takerFee: 21.60, createdAt: '2026-04-29 11:20' },
-  { id: 'trd_04', ticker: 'AGRP_DEBT', side: 'SELL', units: 30, pricePerUnit: 101.50, total: 3045, buyerName: 'Lucia F.', sellerName: 'Roberto M.', makerFee: 15.23, takerFee: 30.45, createdAt: '2026-04-28 09:00' },
-  { id: 'trd_05', ticker: 'FNLP_CONV', side: 'BUY', units: 25, pricePerUnit: 74.00, total: 1850, buyerName: 'Carlos R.', sellerName: 'Diego N.', makerFee: 9.25, takerFee: 18.50, createdAt: '2026-04-27 14:10' },
+  { id: 'trd_01', ticker: 'NVTC_ON', side: 'BUY', units: 100, pricePerUnit: 11.10, total: 1110, quoteCurrency: 'BRL', buyerName: 'Gabriel O.', sellerName: 'João P.', makerFee: 5.55, takerFee: 11.10, platformGasCost: 0.12, createdAt: '2026-05-01 10:30' },
+  { id: 'trd_02', ticker: 'ENBR_PN', side: 'SELL', units: 50, pricePerUnit: 26.00, total: 1300, quoteCurrency: 'BRL', buyerName: 'Ana M.', sellerName: 'Gabriel O.', makerFee: 6.50, takerFee: 13.00, platformGasCost: 0.15, createdAt: '2026-04-30 15:45' },
+  { id: 'trd_03', ticker: 'NVTC_ON', side: 'BUY', units: 200, pricePerUnit: 10.80, total: 2160, quoteCurrency: 'USDC', buyerName: 'Pedro S.', sellerName: 'Fernanda G.', makerFee: 10.80, takerFee: 21.60, platformGasCost: 0.11, createdAt: '2026-04-29 11:20' },
+  { id: 'trd_04', ticker: 'AGRP_DEBT', side: 'SELL', units: 30, pricePerUnit: 101.50, total: 3045, quoteCurrency: 'BRL', buyerName: 'Lucia F.', sellerName: 'Roberto M.', makerFee: 15.23, takerFee: 30.45, platformGasCost: 0.14, createdAt: '2026-04-28 09:00' },
+  { id: 'trd_05', ticker: 'FNLP_CONV', side: 'BUY', units: 25, pricePerUnit: 74.00, total: 1850, quoteCurrency: 'BRL', buyerName: 'Carlos R.', sellerName: 'Diego N.', makerFee: 9.25, takerFee: 18.50, platformGasCost: 0.13, createdAt: '2026-04-27 14:10' },
 ];
 
 /* ── Activity Timeline ── */
@@ -376,12 +411,26 @@ export const mockActivities: Activity[] = [
 
 /* ── Available Tokens for Market ── */
 export const availableTokens = [
-  { ticker: 'NVTC_ON', companyName: 'NovaTech Soluções', assetType: 'ON' as AssetType, lastPrice: 11.20 },
-  { ticker: 'ENBR_PN', companyName: 'EnergyBR Renováveis', assetType: 'PN' as AssetType, lastPrice: 26.50 },
-  { ticker: 'AGRP_DEBT', companyName: 'AgroPrime', assetType: 'DEBT' as AssetType, lastPrice: 102.00 },
-  { ticker: 'FNLP_CONV', companyName: 'FinLeap', assetType: 'CONV' as AssetType, lastPrice: 73.20 },
-  { ticker: 'MFLW_REC', companyName: 'MedFlow Saúde', assetType: 'REC' as AssetType, lastPrice: 50.00 },
+  { ticker: 'NVTC_ON', companyName: 'NovaTech Soluções', assetType: 'ON' as AssetType, lastPrice: 11.20, quoteCurrencies: ['BRL', 'USDC'] as QuoteCurrency[] },
+  { ticker: 'ENBR_PN', companyName: 'EnergyBR Renováveis', assetType: 'PN' as AssetType, lastPrice: 26.50, quoteCurrencies: ['BRL', 'USDC', 'BRZ'] as QuoteCurrency[] },
+  { ticker: 'AGRP_DEBT', companyName: 'AgroPrime', assetType: 'DEBT' as AssetType, lastPrice: 102.00, quoteCurrencies: ['BRL'] as QuoteCurrency[] },
+  { ticker: 'FNLP_CONV', companyName: 'FinLeap', assetType: 'CONV' as AssetType, lastPrice: 73.20, quoteCurrencies: ['BRL', 'USDC'] as QuoteCurrency[] },
+  { ticker: 'MFLW_REC', companyName: 'MedFlow Saúde', assetType: 'REC' as AssetType, lastPrice: 50.00, quoteCurrencies: ['BRL', 'BRZ'] as QuoteCurrency[] },
 ];
+
+/* ── Currency symbols ── */
+export const currencySymbols: Record<QuoteCurrency, string> = {
+  BRL: 'R$',
+  USDC: '$',
+  BRZ: 'R$',
+};
+
+export function formatCurrencyValue(value: number, currency: QuoteCurrency): string {
+  if (currency === 'USDC') {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+  }
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+}
 
 /* ── Helper: Format currency ── */
 export function formatCurrency(value: number): string {
