@@ -1,0 +1,128 @@
+import { z } from 'zod'
+import { router, publicProcedure, protectedProcedure, adminProcedure } from '../init'
+import { createStellarClient } from '@/lib/stellar/client'
+
+const stellarEnv = {
+  STELLAR_KATE_SECRET_KEY:  process.env.STELLAR_KATE_SECRET_KEY,
+  STELLAR_KATE_PUBLIC_KEY:  process.env.STELLAR_KATE_PUBLIC_KEY,
+  STELLAR_USE_TESTNET:      process.env.STELLAR_USE_TESTNET ?? 'true',
+  STELLAR_SIMULATION_MODE:  process.env.STELLAR_SIMULATION_MODE ?? 'true',
+}
+
+export const stellarRouter = router({
+  /** Health check — verify Stellar network connection */
+  testConnection: publicProcedure.query(async () => {
+    const client = createStellarClient(stellarEnv)
+    return client.testConnection()
+  }),
+
+  /** Get config info (no secrets) */
+  getConfig: publicProcedure.query(() => {
+    return {
+      isTestnet:    stellarEnv.STELLAR_USE_TESTNET !== 'false',
+      isSimulated:  !stellarEnv.STELLAR_KATE_SECRET_KEY || stellarEnv.STELLAR_SIMULATION_MODE === 'true',
+      katePublicKey: stellarEnv.STELLAR_KATE_PUBLIC_KEY || 'not-configured',
+    }
+  }),
+
+  /** Get balances for a Stellar public key */
+  getBalances: protectedProcedure
+    .input(z.object({ publicKey: z.string() }))
+    .query(async ({ input }) => {
+      const client = createStellarClient(stellarEnv)
+      return client.getAllBalances(input.publicKey)
+    }),
+
+  /** Get balance for a specific asset */
+  getAssetBalance: protectedProcedure
+    .input(z.object({ publicKey: z.string(), assetCode: z.string() }))
+    .query(async ({ input }) => {
+      const client = createStellarClient(stellarEnv)
+      return client.getAssetBalance(input.publicKey, input.assetCode)
+    }),
+
+  /** [ADMIN] Create a project security token on Stellar */
+  createProjectAsset: adminProcedure
+    .input(z.object({
+      assetCode:    z.string().max(12),
+      totalSupply:  z.number().positive(),
+      projectId:    z.string(),
+      projectName:  z.string(),
+      nftUid:       z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const client = createStellarClient(stellarEnv)
+      return client.createProjectAsset(input.assetCode, input.totalSupply, {
+        projectId:   input.projectId,
+        projectName: input.projectName,
+        nftUid:      input.nftUid,
+      })
+    }),
+
+  /** [ADMIN] Transfer tokens to an investor after confirmed payment */
+  transferTokens: adminProcedure
+    .input(z.object({
+      investorPublicKey: z.string(),
+      assetCode:         z.string(),
+      amount:            z.number().positive(),
+      memo:              z.string().max(28).optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const client = createStellarClient(stellarEnv)
+      return client.transferTokens(
+        input.investorPublicKey,
+        input.assetCode,
+        input.amount,
+        input.memo
+      )
+    }),
+
+  /** [ADMIN] Create an NFT for project verification */
+  createNFT: adminProcedure
+    .input(z.object({
+      nftCode:         z.string().max(12),
+      projectId:       z.string(),
+      projectName:     z.string(),
+      verificationUrl: z.string().url(),
+    }))
+    .mutation(async ({ input }) => {
+      const client = createStellarClient(stellarEnv)
+      return client.createNFT(input.nftCode, {
+        projectId:       input.projectId,
+        projectName:     input.projectName,
+        verificationUrl: input.verificationUrl,
+      })
+    }),
+
+  /** Create trustline for an investor (server-side custody) */
+  createTrustline: adminProcedure
+    .input(z.object({
+      investorSecretKey: z.string(),
+      assetCode:         z.string(),
+      issuerPublicKey:   z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      const client = createStellarClient(stellarEnv)
+      return client.createTrustline(
+        input.investorSecretKey,
+        input.assetCode,
+        input.issuerPublicKey
+      )
+    }),
+
+  /** Fund a testnet account via Friendbot */
+  fundTestnetAccount: adminProcedure
+    .input(z.object({ publicKey: z.string() }))
+    .mutation(async ({ input }) => {
+      const client = createStellarClient(stellarEnv)
+      return client.fundTestnetAccount(input.publicKey)
+    }),
+
+  /** Get Stellar Explorer URL for a transaction */
+  getExplorerUrl: publicProcedure
+    .input(z.object({ txHash: z.string() }))
+    .query(({ input }) => {
+      const client = createStellarClient(stellarEnv)
+      return { url: client.getExplorerUrl(input.txHash) }
+    }),
+})

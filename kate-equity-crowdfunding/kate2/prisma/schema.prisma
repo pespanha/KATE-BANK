@@ -1,0 +1,291 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                    String                 @id @default(uuid())
+  email                 String                 @unique
+  password_hash         String
+  full_name             String?
+  cpf                   String?                @unique
+  phone                 String?
+  birth_date            DateTime?
+  status                String?
+  role                  String?
+  created_at            DateTime               @default(now())
+  updated_at            DateTime               @updatedAt
+
+  investor_profile      InvestorProfile?
+  wallet                Wallet?
+  investor_declarations InvestorDeclaration[]
+  created_issuers       Issuer[]               @relation("IssuerCreator")
+  reservations          Reservation[]
+  investor_positions    InvestorPosition[]
+  secondary_intentions  SecondaryIntention[]
+  secondary_trades_as_seller SecondaryTrade[]  @relation("Seller")
+  secondary_trades_as_buyer  SecondaryTrade[]  @relation("Buyer")
+  compliance_checks     ComplianceCheck[]      @relation("Reviewer")
+  audit_logs            AuditLog[]             @relation("Actor")
+  offer_documents       OfferDocument[]        @relation("Uploader")
+}
+
+model InvestorProfile {
+  id                    String    @id @default(uuid())
+  user_id               String    @unique
+  user                  User      @relation(fields: [user_id], references: [id])
+  investor_type         String?   // retail, qualified, professional, lead
+  annual_income         Float?
+  financial_investments Float?
+  annual_limit          Float?
+  used_limit            Float?
+  is_active_investor    Boolean?
+  active_investor_until DateTime?
+  suitability_score     Float?
+  risk_profile          String?
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+}
+
+model Wallet {
+  id                 String   @id @default(uuid())
+  user_id            String   @unique
+  user               User     @relation(fields: [user_id], references: [id])
+  stellar_public_key String   @unique
+  custody_type       String?  // custodial, mpc, self_custody
+  key_provider       String?
+  status             String?
+  created_at         DateTime @default(now())
+}
+
+model Issuer {
+  id                          String             @id @default(uuid())
+  legal_name                  String
+  trade_name                  String?
+  cnpj                        String             @unique
+  legal_type                  String?
+  annual_revenue              Float?
+  consolidated_annual_revenue Float?
+  headquarters_address        String?
+  sector                      String?
+  website                     String?
+  status                      String?
+  created_by                  String?
+  creator                     User?              @relation("IssuerCreator", fields: [created_by], references: [id])
+  created_at                  DateTime           @default(now())
+  updated_at                  DateTime           @updatedAt
+
+  controllers                 IssuerController[]
+  offers                      Offer[]
+  token_assets                TokenAsset[]
+  investor_positions          InvestorPosition[]
+}
+
+model IssuerController {
+  id                   String  @id @default(uuid())
+  issuer_id            String
+  issuer               Issuer  @relation(fields: [issuer_id], references: [id])
+  name                 String?
+  cpf_cnpj             String?
+  ownership_percentage Float?
+  voting_percentage    Float?
+  is_control_group     Boolean?
+}
+
+model Offer {
+  id                        String                @id @default(uuid())
+  issuer_id                 String
+  issuer                    Issuer                @relation(fields: [issuer_id], references: [id])
+  title                     String?
+  security_type             String?               // equity, convertible_debt, non_convertible_debt
+  status                    String?
+  min_target                Float?
+  max_target                Float?
+  additional_lot_allowed    Boolean?
+  additional_lot_limit      Float?
+  unit_price                Float?
+  min_investment            Float?
+  start_date                DateTime?
+  end_date                  DateTime?
+  withdrawal_period_days    Int?                  @default(5)
+  secondary_authorized      Boolean?
+  secondary_buyer_scope     String?               // active_investors, current_investors_only
+  primary_contract_address  String?
+  rwa_token_address         String?
+  brz_token_address         String?
+  created_at                DateTime              @default(now())
+  updated_at                DateTime              @updatedAt
+
+  offer_documents           OfferDocument[]
+  essential_offer_infos     EssentialOfferInfo[]
+  reservations              Reservation[]
+  investor_declarations     InvestorDeclaration[]
+  token_assets              TokenAsset[]
+  investor_positions        InvestorPosition[]
+}
+
+model OfferDocument {
+  id            String   @id @default(uuid())
+  offer_id      String
+  offer         Offer    @relation(fields: [offer_id], references: [id])
+  document_type String?
+  file_url      String?
+  hash          String?
+  is_public     Boolean?
+  uploaded_by   String?
+  uploader      User?    @relation("Uploader", fields: [uploaded_by], references: [id])
+  created_at    DateTime @default(now())
+}
+
+model EssentialOfferInfo {
+  id                     String   @id @default(uuid())
+  offer_id               String
+  offer                  Offer    @relation(fields: [offer_id], references: [id])
+  company_info           String?  // Store JSON as String in SQLite
+  business_plan          String?
+  security_info          String?
+  syndicate_info         String?
+  continuous_reporting   String?
+  risk_alerts            String?
+  legal_proceedings      String?
+  conflicts              String?
+  platform_compensation  String?
+  taxation               String?
+  warning_text           String?
+  version                Int?
+  created_at             DateTime @default(now())
+}
+
+model Reservation {
+  id                  String    @id @default(uuid())
+  offer_id            String
+  offer               Offer     @relation(fields: [offer_id], references: [id])
+  investor_id         String
+  investor            User      @relation(fields: [investor_id], references: [id])
+  amount_brz          Float?
+  token_quantity      Float?
+  unit_price          Float?
+  status              String?   // pending, confirmed, withdrawn, settled, refunded
+  confirmed_at        DateTime?
+  withdrawal_deadline DateTime?
+  blockchain_tx_hash  String?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+}
+
+model InvestorDeclaration {
+  id                 String   @id @default(uuid())
+  user_id            String
+  user               User     @relation(fields: [user_id], references: [id])
+  offer_id           String
+  offer              Offer    @relation(fields: [offer_id], references: [id])
+  declaration_type   String?  // annex_a, annex_b, annex_c, risk_term
+  content            String?
+  signed_at          DateTime?
+  signature_provider String?
+  signature_id       String?
+  ip_address         String?
+  user_agent         String?
+}
+
+model TokenAsset {
+  id                     String                @id @default(uuid())
+  issuer_id              String
+  issuer                 Issuer                @relation(fields: [issuer_id], references: [id])
+  offer_id               String
+  offer                  Offer                 @relation(fields: [offer_id], references: [id])
+  token_symbol           String?
+  token_name             String?
+  token_contract_address String?
+  token_type             String?               // rwa_security_token
+  total_supply           Float?
+  decimals               Int?
+  transfer_restricted    Boolean?
+  status                 String?
+  created_at             DateTime              @default(now())
+
+  investor_positions     InvestorPosition[]
+  secondary_intentions   SecondaryIntention[]
+  secondary_trades       SecondaryTrade[]
+}
+
+model InvestorPosition {
+  id                 String     @id @default(uuid())
+  user_id            String
+  user               User       @relation(fields: [user_id], references: [id])
+  issuer_id          String
+  issuer             Issuer     @relation(fields: [issuer_id], references: [id])
+  offer_id           String
+  offer              Offer      @relation(fields: [offer_id], references: [id])
+  token_asset_id     String
+  token_asset        TokenAsset @relation(fields: [token_asset_id], references: [id])
+  quantity           Float?
+  average_price      Float?
+  acquisition_origin String?    // primary, subsequent_transaction, private_transfer
+  last_updated_at    DateTime?
+}
+
+model SecondaryIntention {
+  id               String     @id @default(uuid())
+  token_asset_id   String
+  token_asset      TokenAsset @relation(fields: [token_asset_id], references: [id])
+  user_id          String
+  user             User       @relation(fields: [user_id], references: [id])
+  intention_type   String?    // buy, sell
+  quantity         Float?
+  price_per_token  Float?
+  total_value      Float?
+  status           String?    // open, accepted, cancelled, expired, executed
+  seller_relation  String?    // regular, controller, lead_investor
+  expires_at       DateTime?
+  created_at       DateTime   @default(now())
+}
+
+model SecondaryTrade {
+  id                          String     @id @default(uuid())
+  token_asset_id              String
+  token_asset                 TokenAsset @relation(fields: [token_asset_id], references: [id])
+  seller_id                   String
+  seller                      User       @relation("Seller", fields: [seller_id], references: [id])
+  buyer_id                    String
+  buyer                       User       @relation("Buyer", fields: [buyer_id], references: [id])
+  quantity                    Float?
+  price_per_token             Float?
+  total_value_brz             Float?
+  status                      String?    // pending_validation, ready, executed, cancelled, failed
+  subsequent_contract_address String?
+  blockchain_tx_hash          String?
+  executed_at                 DateTime?
+  created_at                  DateTime   @default(now())
+}
+
+model ComplianceCheck {
+  id          String   @id @default(uuid())
+  entity_type String?  // user, issuer, offer, trade
+  entity_id   String?
+  check_type  String?
+  status      String?
+  result      String?  // JSON as String
+  reviewed_by String?
+  reviewer    User?    @relation("Reviewer", fields: [reviewed_by], references: [id])
+  reviewed_at DateTime?
+  created_at  DateTime @default(now())
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  actor_user_id  String?
+  actor          User?    @relation("Actor", fields: [actor_user_id], references: [id])
+  action         String?
+  entity_type    String?
+  entity_id      String?
+  previous_value String?  // JSON as String
+  new_value      String?  // JSON as String
+  ip_address     String?
+  user_agent     String?
+  created_at     DateTime @default(now())
+}

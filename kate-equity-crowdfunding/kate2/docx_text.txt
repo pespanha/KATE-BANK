@@ -1,0 +1,748 @@
+Documento funcional — Equity Crowdfunding + Stellar/Soroban
+1. Premissa regulatória
+O sistema deve operar como plataforma eletrônica de investimento participativo registrada na CVM, nos termos da Resolução CVM 88. A oferta pública é dispensada de registro se respeitar, entre outros pontos: emissor como sociedade empresária de pequeno porte, captação máxima de R$ 15 milhões, prazo máximo de 180 dias, direito de desistência mínimo de 5 dias, controle de titularidade/escrituração e segregação dos recursos até o sucesso da oferta. 
+Para investidores, o limite padrão é R$ 20 mil por ano-calendário, salvo investidor líder, investidor qualificado ou investidor com renda/investimentos acima de R$ 200 mil, caso em que pode investir até 10% do maior valor entre renda anual e investimentos financeiros. 
+O mercado subsequente é permitido, mas não pode parecer bolsa, mercado organizado ou book multilateral. A plataforma pode intermediar compra e venda de valores mobiliários já emitidos publicamente no seu ambiente, desde que verifique titularidade, elegibilidade do comprador, limites aplicáveis, entrega contra pagamento e histórico mensal de volume/preço. 
+2. Benchmark funcional
+A EqSeed foca em seleção rigorosa, aprovação de menos de 1% das empresas, jornada 100% online, páginas com histórico, plano de negócios, uso dos recursos, projeções e processo de investimento com contrato e transferência direta ao final da rodada. 
+A Kria apresenta oportunidades por cards, com tipo de ativo, risco, valor captado, aplicação mínima, rentabilidade esperada quando aplicável e status da oferta. Também possui solução B2B/KRS com infraestrutura para ofertas primárias, “Crowdmarket” para transações subsequentes, PIX, contratos via ClickSign e APIs. 
+3. Tipos de usuário
+Visitante: vê home, material didático, ofertas públicas abertas, alertas CVM, FAQ, histórico de ofertas encerradas e página institucional.
+Investidor cadastrado: cria conta, passa por KYC/PLD, recebe carteira Stellar, assina termos, declara perfil, investe, acompanha reservas, carteira de ativos, documentos, informes e transações subsequentes.
+Investidor ativo: além do anterior, pode acessar o mural de intenções de compra/venda, desde que tenha cadastro atualizado e investimento em oferta pública da plataforma nos últimos 2 anos. 
+Emissor/startup: cadastra empresa, captable, documentos societários, oferta, plano de negócios, informações essenciais, relatórios periódicos e autorização para transações subsequentes.
+Investidor líder: cria sindicato, publica tese, comprova experiência, realiza aporte mínimo próprio, comunica apoiadores e pode receber taxa de performance conforme regras da CVM 88.
+Admin compliance: aprova KYC, suitability, documentos da oferta, limites, termos, publicidade, fórum, registros CVM, relatórios Anexo G/H, logs e alertas PLD.
+Superadmin: configura plataforma, contratos, stablecoin BRZ, carteiras, contratos Soroban, permissões, taxas, integrações, auditoria, chaves e parâmetros de risco.
+4. Fluxo de telas essenciais
+4.1 Home pública
+Objetivo: explicar a plataforma e direcionar para ofertas.
+Recursos: aviso obrigatório CVM, oportunidades abertas, ofertas encerradas, material didático, FAQ, como investir, riscos, contato e login.
+4.2 Lista de ofertas
+Objetivo: permitir descoberta de oportunidades.
+Recursos: cards com nome da empresa, setor, tipo de valor mobiliário, meta mínima, meta máxima, valor captado, prazo, investimento mínimo, status, risco, lote adicional e botão “ver oferta”.
+4.3 Página da oferta
+Objetivo: concentrar toda decisão de investimento.
+Recursos: resumo da rodada, informações essenciais, pacote de documentos, captable, valuation, uso dos recursos, termos do valor mobiliário, riscos, fórum, atualizações, investidores, investidor líder, sindicato, histórico de preço de ofertas anteriores e botão “investir”.
+4.4 Onboarding investidor
+Objetivo: tornar o usuário elegível.
+Recursos: e-mail/senha/OTP, CPF, KYC, PLD/PEP, endereço, declaração de investidor, limite anual, termo de ciência de risco, criação de carteira Stellar e aceite de custódia/chave protegida.
+4.5 Checkout da oferta primária
+Objetivo: reservar investimento.
+Recursos: valor, simulação de participação/tokens, checagem de limite CVM, assinatura eletrônica, período de desistência, status da reserva, instrução de pagamento em BRZ/PIX/token, recibo e registro on-chain/off-chain.
+4.6 Dashboard do investidor
+Objetivo: acompanhar carteira.
+Recursos: ativos primários, ativos liberados para transações subsequentes, documentos, informes, evolução da oferta, histórico de reservas, direitos, eventos societários, carteira BRZ e carteira de tokens RWA.
+4.7 Portal do emissor
+Objetivo: operar a vida da oferta e pós-oferta.
+Recursos: cadastro da empresa, documentos, captable, informações essenciais, relatórios semestrais, eventos relevantes, comunicação com investidores, inadimplência informacional, autorização para mercado subsequente.
+4.8 Admin compliance
+Objetivo: controlar risco, regulação e operação.
+Recursos: aprovação de ofertas, checklist CVM 88, revisão de publicidade, KYC, suitability, limites, logs, trilha de auditoria, relatórios CVM, suspensão/cancelamento, liberação de tokens e mercado subsequente.
+4.9 Mural de transações subsequentes
+Objetivo: permitir liquidez limitada sem criar bolsa.
+Recursos: intenções de compra e venda, preço indicado, quantidade, origem do vendedor, alerta se controlador/líder, histórico mensal de preço/volume, aceite de risco, validação de comprador ativo e execução bilateral.
+5. Arquitetura Stellar/Soroban
+Soroban é a camada de smart contracts da Stellar; os contratos são escritos em Rust e compilados para WebAssembly. 
+A OpenZeppelin já possui biblioteca Stellar com contratos e módulos para tokens fungíveis, RWA, vaults, smart accounts, access control, pausable e upgradeable. 
+Componentes
+Backend regulatório off-chain
+KYC, PLD, suitability, limites CVM, documentos, auditoria, relatórios, fóruns e comunicações.
+Wallet service
+Cria carteira Stellar para cada usuário.
+Chave protegida por KMS/HSM/MPC.
+Opcionalmente usa smart accounts com políticas de gasto.
+BRZ token
+Stablecoin usada como moeda de pagamento.
+Pode ser Stellar asset ou Soroban token wrapper.
+Deve ter whitelist de usuários aprovados.
+RWA Security Token
+Representa o valor mobiliário ofertado.
+Transferência restrita.
+Só endereços aprovados podem receber.
+Pode ficar bloqueado até encerramento da oferta.
+Primary Offering Contract
+Controla reserva, prazo, meta mínima, meta máxima, lote adicional, desistência e liquidação.
+Subsequent Transaction Contract
+Controla swap bilateral entre token RWA e BRZ.
+Não deve ter AMM, order book automático, market maker ou formação centralizada de preço.
+6. Smart contract da oferta primária
+Estados da oferta
+Draft → Approved → Live → CoolingOff → Successful → Failed → Settled → Cancelled
+Regras
+O contrato recebe parâmetros: emissor, token RWA, token BRZ, preço unitário, meta mínima, meta máxima, lote adicional, data início, data fim, prazo de desistência, whitelist de investidores e limites individuais.
+Fluxo:
+Admin aprova oferta off-chain.
+Contrato é iniciado em Soroban.
+Investidor aprovado chama reserve(amount_brz).
+Contrato valida whitelist, limite CVM, prazo e disponibilidade.
+BRZ é bloqueado em escrow.
+Durante 5 dias, investidor pode chamar withdraw_reservation().
+Ao fim da oferta:
+se atingir mínimo: settle_success();
+se não atingir mínimo: settle_failure().
+Em sucesso:
+BRZ vai para emissor;
+token RWA é mintado/distribuído ao investidor;
+backend atualiza controle de titularidade.
+Em falha:
+BRZ volta ao investidor;
+nenhuma emissão final ocorre.
+7. Smart contract do mercado subsequente
+Regra principal
+Não deve funcionar como bolsa. Deve ser um mural de intenções + execução bilateral controlada.
+Fluxo:
+Vendedor publica intenção de venda off-chain.
+Comprador ativo manifesta interesse.
+Backend valida:
+vendedor é titular;
+comprador é investidor ativo ou investidor atual, conforme regra do emissor;
+limite CVM do comprador;
+inexistência de inadimplência informacional do emissor;
+se vendedor é controlador/líder e limite de 5%.
+Contrato cria trade_intent.
+Comprador deposita BRZ.
+Vendedor aprova transferência do RWA.
+Contrato executa swap atômico:
+BRZ → vendedor;
+RWA → comprador.
+Plataforma registra volume/preço para histórico mensal.
+8. Integrações
+KYC/PLD: idwall, unico, caf, sumsub ou similar.
+Assinatura: ClickSign, D4Sign ou DocuSign.
+Pagamento fiat/PIX: parceiro bancário ou PSP; conversão para BRZ via emissor/cripto parceiro.
+Blockchain: Stellar SDK, Soroban RPC, Horizon, indexador próprio e monitor de eventos.
+x402: pode ser usado para APIs pagas, agentes e chamadas programáticas. No Stellar, x402 usa autorização Soroban e pode liquidar pagamentos por requisição, útil para cobrar acesso a dados, relatórios, APIs de valuation ou serviços de agente. 
+MCPs sugeridos:
+OpenZeppelin Stellar Contracts MCP para acelerar geração de contratos seguros.
+Stellar MCP para consultas, deploy, testes e leitura de rede.
+Codex/Replit para transformar especificação em módulos incrementais.
+9. Diferencial competitivo
+O sistema não deve ser apenas “mais uma EqSeed/Kria”. O diferencial é ser uma infraestrutura CVM 88 com:
+controle de titularidade nativo;
+tokenização Stellar;
+escrow programável em BRZ;
+transação subsequente bilateral e regulada;
+smart accounts com chaves protegidas;
+APIs para originadores, sindicatos e whitelabels;
+logs on-chain/off-chain auditáveis;
+relatórios CVM automatizados;
+liquidez limitada sem caracterizar bolsa;
+integração futura com agentes via x402.
+10. Cuidado jurídico essencial
+A blockchain deve ser tratada como camada de registro, liquidação e automação, não como substituto da plataforma registrada na CVM. A elegibilidade, publicidade, suitability, PLD, documentos, termos de risco, controle de titularidade e comunicação com investidores continuam sendo obrigações regulatórias da plataforma.
+
+1. Mapa de telas e funcionalidades
+1. Home pública
+Objetivo: apresentar a plataforma, ofertas e alertas regulatórios.
+Funcionalidades:
+banner institucional;
+aviso obrigatório CVM;
+lista de ofertas públicas abertas;
+lista de ofertas encerradas com sucesso;
+link para material didático;
+FAQ;
+login/cadastro;
+busca por empresa/setor;
+filtros por status da oferta;
+página “como funciona”;
+página “riscos do investimento”.
+APIs:
+GET /public/platform-disclaimer
+GET /public/offers
+GET /public/offers/:offerId
+GET /public/successful-offers
+GET /public/educational-material
+GET /public/faqs
+
+2. Cadastro e login do investidor
+Objetivo: criar usuário, autenticar, validar identidade e preparar wallet.
+Funcionalidades:
+cadastro por e-mail e senha;
+OTP por e-mail;
+esqueci senha;
+CPF;
+telefone;
+endereço;
+aceite de termos;
+KYC;
+PLD/PEP;
+classificação do investidor;
+criação de wallet Stellar;
+associação da wallet ao usuário;
+definição de chave protegida/custodial;
+logs de consentimento.
+APIs:
+POST /auth/register
+POST /auth/login
+POST /auth/request-otp
+POST /auth/verify-otp
+POST /auth/forgot-password/request
+POST /auth/forgot-password/reset
+
+POST /users/me/kyc
+GET /users/me/kyc-status
+POST /users/me/investor-profile
+GET /users/me/investment-limits
+
+POST /wallets/create
+GET /wallets/me
+POST /wallets/me/recovery-request
+
+3. Dashboard do investidor
+Objetivo: centralizar carteira, ofertas, documentos e liquidez.
+Funcionalidades:
+saldo BRZ;
+tokens RWA;
+ofertas em que investiu;
+reservas pendentes;
+prazo de desistência;
+documentos assinados;
+contratos;
+informes da empresa;
+eventos societários;
+histórico de transações;
+elegibilidade para transações subsequentes;
+alertas de limite CVM;
+declarações assinadas.
+APIs:
+GET /investor/dashboard
+GET /investor/portfolio
+GET /investor/positions
+GET /investor/reservations
+GET /investor/documents
+GET /investor/notifications
+GET /investor/annual-investment-usage
+GET /investor/secondary-eligibility
+
+4. Lista de ofertas
+Objetivo: permitir navegação e descoberta das rodadas.
+Funcionalidades:
+cards de ofertas;
+status: rascunho, aberta, mínimo atingido, alvo atingido, lote adicional, encerrada, cancelada;
+filtros por setor;
+filtros por estágio;
+filtro por tipo de valor mobiliário;
+valor captado;
+meta mínima;
+meta máxima;
+prazo restante;
+investimento mínimo;
+destaque de investidor líder;
+indicação se haverá transações subsequentes.
+APIs:
+GET /offers
+GET /offers?status=live
+GET /offers?sector=fintech
+GET /offers?hasLeadInvestor=true
+GET /offers?secondaryEnabled=true
+
+5. Página da oferta
+Objetivo: ser a página regulatória e comercial da oferta.
+Funcionalidades:
+resumo da empresa;
+tese da oferta;
+dados da rodada;
+preço unitário;
+quantidade ofertada;
+valor alvo mínimo;
+valor alvo máximo;
+lote adicional;
+prazo da oferta;
+progresso diário da captação;
+informações essenciais da oferta;
+pacote de documentos;
+contrato de investimento;
+escritura/debênture/nota conversível;
+captable atual;
+captable pós-money;
+alertas de risco;
+fórum da oferta;
+perguntas e respostas;
+investidor líder;
+sindicato, se houver;
+botão investir;
+botão desistir, se dentro do prazo;
+histórico de atualizações.
+A CVM 88 exige página específica com informações essenciais, documentos relevantes, avisos de risco, valores captados comparáveis aos alvos e guarda das informações por prazo mínimo. 
+APIs:
+GET /offers/:offerId
+GET /offers/:offerId/essential-info
+GET /offers/:offerId/documents
+GET /offers/:offerId/capital-structure
+GET /offers/:offerId/progress
+GET /offers/:offerId/forum
+POST /offers/:offerId/forum/messages
+POST /offers/:offerId/invest
+POST /offers/:offerId/cancel-reservation
+
+6. Checkout de investimento
+Objetivo: confirmar a reserva e executar o swap BRZ ↔ token RWA no fluxo primário.
+Funcionalidades:
+digitar valor de investimento;
+validar múltiplos/lote mínimo;
+validar limite CVM;
+validar perfil investidor;
+assinar termo de ciência de risco;
+assinar declaração Anexo A/B/C;
+assinar contrato;
+gerar ordem de pagamento;
+bloquear BRZ em escrow;
+registrar reserva;
+iniciar prazo de desistência;
+mostrar recibo;
+registrar evento on-chain;
+registrar evento off-chain.
+APIs:
+POST /offers/:offerId/investment-intent
+POST /offers/:offerId/validate-investment
+POST /offers/:offerId/sign-risk-term
+POST /offers/:offerId/sign-investment-contract
+POST /offers/:offerId/confirm-investment
+POST /offers/:offerId/withdraw-investment
+GET /offers/:offerId/investment-receipt/:reservationId
+
+7. Portal do emissor
+Objetivo: permitir que a empresa prepare oferta e cumpra obrigações pós-oferta.
+Funcionalidades:
+cadastro da empresa;
+CNPJ;
+quadro societário;
+administradores;
+controladores;
+upload de contrato social/estatuto;
+upload de demonstrações financeiras;
+upload de aprovação societária da emissão;
+plano de negócios;
+uso dos recursos;
+projeções financeiras;
+cadastro da oferta;
+envio de informações periódicas;
+eventos relevantes;
+autorização para transações subsequentes;
+gestão de documentos;
+acompanhamento de investidores;
+comunicação com investidores;
+status de inadimplência informacional.
+APIs:
+POST /issuers
+GET /issuers/:issuerId
+PATCH /issuers/:issuerId
+
+POST /issuers/:issuerId/documents
+GET /issuers/:issuerId/documents
+
+POST /issuers/:issuerId/offers
+PATCH /issuers/:issuerId/offers/:offerId
+POST /issuers/:issuerId/periodic-reports
+POST /issuers/:issuerId/material-events
+POST /issuers/:issuerId/secondary-consent
+GET /issuers/:issuerId/investors
+GET /issuers/:issuerId/cap-table
+
+8. Admin compliance
+Objetivo: aprovar, auditar e controlar tudo que tem risco regulatório.
+Funcionalidades:
+aprovar/reprovar KYC;
+aprovar investidor qualificado;
+validar limite anual;
+aprovar emissor;
+checklist CVM 88;
+revisar documentos da oferta;
+revisar publicidade;
+suspender oferta;
+cancelar oferta;
+aprovar investidor líder;
+validar sindicato;
+auditar fórum;
+gerar Anexo G;
+gerar Anexo H;
+monitorar PLD;
+monitorar wallets;
+logs completos;
+trilha de auditoria;
+relatórios de transações subsequentes.
+APIs:
+GET /admin/kyc/pending
+POST /admin/kyc/:kycId/approve
+POST /admin/kyc/:kycId/reject
+
+GET /admin/offers/pending
+POST /admin/offers/:offerId/approve
+POST /admin/offers/:offerId/suspend
+POST /admin/offers/:offerId/cancel
+POST /admin/offers/:offerId/publish
+
+GET /admin/compliance/checklists/:offerId
+POST /admin/compliance/checklists/:offerId/items/:itemId
+
+GET /admin/reports/cvm-annex-g/:offerId
+GET /admin/reports/cvm-annex-h/:year
+GET /admin/audit-logs
+
+9. Mural de transações subsequentes
+Objetivo: permitir liquidez limitada sem virar bolsa.
+Funcionalidades:
+mural de intenção de venda;
+mural de intenção de compra;
+sem book automático;
+sem matching engine;
+sem market maker;
+preço indicado manualmente;
+comprador precisa ser investidor ativo;
+emissor pode restringir a compradores que já sejam investidores da empresa;
+validação de titularidade;
+alerta se vendedor for controlador, grupo de controle ou investidor líder;
+histórico mensal de preço e volume;
+execução bilateral;
+swap atômico BRZ ↔ RWA;
+atualização de titularidade;
+comunicação ao emissor em até 24h.
+A CVM 88 permite intermediação de transações subsequentes, mas veda sistema centralizado multilateral de negociação, formação de preço, market maker e uso de termos que induzam a ideia de bolsa ou mercado secundário regulamentado. 
+APIs:
+GET /secondary/assets
+GET /secondary/assets/:assetId
+GET /secondary/assets/:assetId/intentions
+
+POST /secondary/sell-intentions
+POST /secondary/buy-intentions
+POST /secondary/trades/:intentionId/accept
+POST /secondary/trades/:tradeId/validate
+POST /secondary/trades/:tradeId/execute
+GET /secondary/trades/:tradeId
+GET /secondary/assets/:assetId/monthly-history
+
+2. Schemas principais
+users
+users (
+  id uuid primary key,
+  email varchar unique not null,
+  password_hash varchar not null,
+  full_name varchar,
+  cpf varchar unique,
+  phone varchar,
+  birth_date date,
+  status varchar,
+  role varchar,
+  created_at timestamp,
+  updated_at timestamp
+)
+
+investor_profiles
+investor_profiles (
+  id uuid primary key,
+  user_id uuid references users(id),
+  investor_type varchar, -- retail, qualified, professional, lead
+  annual_income numeric,
+  financial_investments numeric,
+  annual_limit numeric,
+  used_limit numeric,
+  is_active_investor boolean,
+  active_investor_until date,
+  suitability_score numeric,
+  risk_profile varchar,
+  created_at timestamp,
+  updated_at timestamp
+)
+
+wallets
+wallets (
+  id uuid primary key,
+  user_id uuid references users(id),
+  stellar_public_key varchar unique not null,
+  custody_type varchar, -- custodial, mpc, self_custody
+  key_provider varchar,
+  status varchar,
+  created_at timestamp
+)
+
+issuers
+issuers (
+  id uuid primary key,
+  legal_name varchar not null,
+  trade_name varchar,
+  cnpj varchar unique not null,
+  legal_type varchar,
+  annual_revenue numeric,
+  consolidated_annual_revenue numeric,
+  headquarters_address text,
+  sector varchar,
+  website varchar,
+  status varchar,
+  created_by uuid references users(id),
+  created_at timestamp,
+  updated_at timestamp
+)
+
+issuer_controllers
+issuer_controllers (
+  id uuid primary key,
+  issuer_id uuid references issuers(id),
+  name varchar,
+  cpf_cnpj varchar,
+  ownership_percentage numeric,
+  voting_percentage numeric,
+  is_control_group boolean
+)
+
+offers
+offers (
+  id uuid primary key,
+  issuer_id uuid references issuers(id),
+  title varchar,
+  security_type varchar, -- equity, convertible_debt, non_convertible_debt
+  status varchar,
+  min_target numeric,
+  max_target numeric,
+  additional_lot_allowed boolean,
+  additional_lot_limit numeric,
+  unit_price numeric,
+  min_investment numeric,
+  start_date timestamp,
+  end_date timestamp,
+  withdrawal_period_days int default 5,
+  secondary_authorized boolean,
+  secondary_buyer_scope varchar, -- active_investors, current_investors_only
+  primary_contract_address varchar,
+  rwa_token_address varchar,
+  brz_token_address varchar,
+  created_at timestamp,
+  updated_at timestamp
+)
+
+offer_documents
+offer_documents (
+  id uuid primary key,
+  offer_id uuid references offers(id),
+  document_type varchar,
+  file_url text,
+  hash varchar,
+  is_public boolean,
+  uploaded_by uuid references users(id),
+  created_at timestamp
+)
+
+essential_offer_infos
+essential_offer_infos (
+  id uuid primary key,
+  offer_id uuid references offers(id),
+  company_info jsonb,
+  business_plan jsonb,
+  security_info jsonb,
+  syndicate_info jsonb,
+  continuous_reporting jsonb,
+  risk_alerts jsonb,
+  legal_proceedings jsonb,
+  conflicts jsonb,
+  platform_compensation jsonb,
+  taxation jsonb,
+  warning_text text,
+  version int,
+  created_at timestamp
+)
+
+reservations
+reservations (
+  id uuid primary key,
+  offer_id uuid references offers(id),
+  investor_id uuid references users(id),
+  amount_brz numeric,
+  token_quantity numeric,
+  unit_price numeric,
+  status varchar, -- pending, confirmed, withdrawn, settled, refunded
+  confirmed_at timestamp,
+  withdrawal_deadline timestamp,
+  blockchain_tx_hash varchar,
+  created_at timestamp,
+  updated_at timestamp
+)
+
+investor_declarations
+investor_declarations (
+  id uuid primary key,
+  user_id uuid references users(id),
+  offer_id uuid references offers(id),
+  declaration_type varchar, -- annex_a, annex_b, annex_c, risk_term
+  content text,
+  signed_at timestamp,
+  signature_provider varchar,
+  signature_id varchar,
+  ip_address varchar,
+  user_agent text
+)
+
+token_assets
+token_assets (
+  id uuid primary key,
+  issuer_id uuid references issuers(id),
+  offer_id uuid references offers(id),
+  token_symbol varchar,
+  token_name varchar,
+  token_contract_address varchar,
+  token_type varchar, -- rwa_security_token
+  total_supply numeric,
+  decimals int,
+  transfer_restricted boolean,
+  status varchar,
+  created_at timestamp
+)
+
+investor_positions
+investor_positions (
+  id uuid primary key,
+  user_id uuid references users(id),
+  issuer_id uuid references issuers(id),
+  offer_id uuid references offers(id),
+  token_asset_id uuid references token_assets(id),
+  quantity numeric,
+  average_price numeric,
+  acquisition_origin varchar, -- primary, subsequent_transaction, private_transfer
+  last_updated_at timestamp
+)
+
+secondary_intentions
+secondary_intentions (
+  id uuid primary key,
+  token_asset_id uuid references token_assets(id),
+  user_id uuid references users(id),
+  intention_type varchar, -- buy, sell
+  quantity numeric,
+  price_per_token numeric,
+  total_value numeric,
+  status varchar, -- open, accepted, cancelled, expired, executed
+  seller_relation varchar, -- regular, controller, lead_investor
+  expires_at timestamp,
+  created_at timestamp
+)
+
+secondary_trades
+secondary_trades (
+  id uuid primary key,
+  token_asset_id uuid references token_assets(id),
+  seller_id uuid references users(id),
+  buyer_id uuid references users(id),
+  quantity numeric,
+  price_per_token numeric,
+  total_value_brz numeric,
+  status varchar, -- pending_validation, ready, executed, cancelled, failed
+  subsequent_contract_address varchar,
+  blockchain_tx_hash varchar,
+  executed_at timestamp,
+  created_at timestamp
+)
+
+compliance_checks
+compliance_checks (
+  id uuid primary key,
+  entity_type varchar, -- user, issuer, offer, trade
+  entity_id uuid,
+  check_type varchar,
+  status varchar,
+  result jsonb,
+  reviewed_by uuid references users(id),
+  reviewed_at timestamp,
+  created_at timestamp
+)
+
+audit_logs
+audit_logs (
+  id uuid primary key,
+  actor_user_id uuid references users(id),
+  action varchar,
+  entity_type varchar,
+  entity_id uuid,
+  previous_value jsonb,
+  new_value jsonb,
+  ip_address varchar,
+  user_agent text,
+  created_at timestamp
+)
+
+3. Schemas blockchain
+primary_offering_contract_state
+PrimaryOffering {
+  offer_id: String,
+  issuer_wallet: Address,
+  platform_admin: Address,
+  rwa_token: Address,
+  brz_token: Address,
+  min_target: i128,
+  max_target: i128,
+  additional_lot_limit: i128,
+  unit_price: i128,
+  start_time: u64,
+  end_time: u64,
+  withdrawal_period_seconds: u64,
+  total_reserved: i128,
+  total_settled: i128,
+  status: OfferStatus
+}
+reservation_state
+Reservation {
+  investor: Address,
+  amount_brz: i128,
+  token_quantity: i128,
+  confirmed_at: u64,
+  withdrawal_deadline: u64,
+  withdrawn: bool,
+  settled: bool,
+  refunded: bool
+}
+secondary_trade_contract_state
+SecondaryTrade {
+  trade_id: String,
+  seller: Address,
+  buyer: Address,
+  rwa_token: Address,
+  brz_token: Address,
+  quantity: i128,
+  price_per_token: i128,
+  total_value_brz: i128,
+  status: TradeStatus,
+  expires_at: u64
+}
+
+4. Correlações principais
+Usuário → Wallet → Perfil → Limite
+users
+ └── wallets
+ └── investor_profiles
+ └── investor_declarations
+Emissor → Oferta → Token → Investidores
+issuers
+ └── offers
+      └── token_assets
+      └── reservations
+      └── investor_positions
+      └── offer_documents
+      └── essential_offer_infos
+Oferta primária
+offer
+ └── primary_offering_contract
+      └── reservations
+           └── BRZ escrow
+           └── RWA mint/distribution
+Transações subsequentes
+token_asset
+ └── investor_positions
+ └── secondary_intentions
+      └── secondary_trades
+           └── BRZ/RWA atomic swap
+
+5. Regras críticas de negócio
+Nenhum investimento pode ser confirmado sem KYC aprovado.
+Nenhum investimento pode exceder o limite CVM aplicável.
+Toda oferta precisa ter meta mínima de pelo menos 2/3 da meta máxima.
+O investidor precisa ter 5 dias de desistência.
+A plataforma não pode receber recursos em conta própria.
+O BRZ deve ficar em escrow até sucesso ou falha da oferta.
+Token RWA só deve ser entregue após sucesso da oferta.
+Transações subsequentes só podem ocorrer para investidores elegíveis.
+Não pode haver order book, matching automático ou market maker.
+Toda transferência de titularidade precisa atualizar posição off-chain e emitir evento on-chain.
+Se o emissor estiver inadimplente com informes, suspende transações subsequentes.
+Toda ação sensível deve gerar audit log.
+Haut du formulaire
+Bas du formulaire
+
+

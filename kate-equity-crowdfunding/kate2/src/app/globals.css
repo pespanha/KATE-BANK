@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Kate CSS Variables (used as fallback & non-Tailwind contexts) ─── */
+:root {
+  --kate-yellow:     #FCA310;
+  --kate-dark-blue:  #14213C;
+  --kate-light-gray: #CBD1D3;
+  --kate-dark-gray:  #747C7C;
+  --kate-dark:       #050609;
+}
+
+
+/* ─── CSS Reset ──────────────────────────────────── */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', 'Helvetica', Arial, sans-serif;
+  background-color: #050609;
+  color: #f8fafc;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+img { max-width: 100%; display: block; }
+
+/* ─── Scrollbar ───────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #14213C; }
+::-webkit-scrollbar-thumb { background: #FCA310; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #e08e00; }
+
+/* ─── Selection ──────────────────────────────────── */
+::selection { background: rgba(252, 163, 16, 0.3); color: #fff; }
