@@ -1,5 +1,13 @@
 import { z } from 'zod'
 import { router, adminProcedure } from '../init'
+import { createStellarClient } from '@/lib/stellar/client'
+
+const stellarEnv = {
+  STELLAR_KATE_SECRET_KEY:  process.env.STELLAR_KATE_SECRET_KEY,
+  STELLAR_KATE_PUBLIC_KEY:  process.env.STELLAR_KATE_PUBLIC_KEY,
+  STELLAR_USE_TESTNET:      process.env.STELLAR_USE_TESTNET ?? 'true',
+  STELLAR_SIMULATION_MODE:  process.env.STELLAR_SIMULATION_MODE ?? 'true',
+}
 
 export const adminRouter = router({
   /** Platform KPIs */
@@ -153,4 +161,131 @@ export const adminRouter = router({
         data:  { role: input.role },
       })
     }),
+
+  /** [ADMIN] Emit tokens for a single confirmed reservation via Stellar */
+  processTokenJob: adminProcedure
+    .input(z.object({ reservation_id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const reservation = await ctx.prisma.reservation.findUniqueOrThrow({
+        where:   { id: input.reservation_id },
+        include: {
+          investor: { include: { wallet: true } },
+          offer:    { include: { token_assets: true, issuer: true } },
+        },
+      })
+
+      if (reservation.status !== 'confirmed') {
+        throw new Error('Reserva não está no status confirmado')
+      }
+      if (reservation.blockchain_tx_hash) {
+        throw new Error('Tokens já foram emitidos para esta reserva')
+      }
+
+      const investorWallet = reservation.investor.wallet
+      if (!investorWallet) throw new Error('Investidor sem carteira Stellar')
+
+      const tokenAsset = reservation.offer.token_assets[0]
+      if (!tokenAsset) throw new Error('Oferta sem token asset cadastrado')
+
+      const client = createStellarClient(stellarEnv)
+
+      // Transfer RWA tokens to investor wallet
+      const result = await client.transferTokens(
+        investorWallet.stellar_public_key,
+        tokenAsset.token_symbol ?? 'RWA',
+        reservation.token_quantity ?? 0,
+        `INV-${reservation.id.slice(0, 8)}`
+      )
+
+      // Mark as settled and store tx hash
+      await ctx.prisma.reservation.update({
+        where: { id: input.reservation_id },
+        data:  { status: 'settled', blockchain_tx_hash: result.txHash },
+      })
+
+      // Upsert investor position
+      const posId = `${reservation.investor_id}-${tokenAsset.id}`
+      await ctx.prisma.investorPosition.upsert({
+        where:  { id: posId },
+        create: {
+          id:                 posId,
+          user_id:            reservation.investor_id,
+          issuer_id:          reservation.offer.issuer_id,
+          offer_id:           reservation.offer_id,
+          token_asset_id:     tokenAsset.id,
+          quantity:           reservation.token_quantity ?? 0,
+          average_price:      reservation.unit_price,
+          acquisition_origin: 'primary',
+          last_updated_at:    new Date(),
+        },
+        update: {
+          quantity:        { increment: reservation.token_quantity ?? 0 },
+          last_updated_at: new Date(),
+        },
+      })
+
+      // Audit log
+      await ctx.prisma.auditLog.create({
+        data: {
+          actor_user_id: ctx.userId,
+          action:        'process_token_job',
+          entity_type:   'reservation',
+          entity_id:     input.reservation_id,
+          new_value:     JSON.stringify({ txHash: result.txHash, tokens: reservation.token_quantity }),
+        },
+      })
+
+      return { txHash: result.txHash, tokens: reservation.token_quantity }
+    }),
+
+  /** [ADMIN] Emit tokens for ALL confirmed-but-unpaid reservations */
+  processAllTokenJobs: adminProcedure.mutation(async ({ ctx }) => {
+    const pending = await ctx.prisma.reservation.findMany({
+      where:   { status: 'confirmed', blockchain_tx_hash: null },
+      include: {
+        investor: { include: { wallet: true } },
+        offer:    { include: { token_assets: true } },
+      },
+    })
+
+    const client  = createStellarClient(stellarEnv)
+    const results = { success: 0, failed: 0, errors: [] as string[] }
+
+    for (const reservation of pending) {
+      try {
+        const wallet     = reservation.investor.wallet
+        const tokenAsset = reservation.offer.token_assets[0]
+        if (!wallet || !tokenAsset) { results.failed++; continue }
+
+        const result = await client.transferTokens(
+          wallet.stellar_public_key,
+          tokenAsset.token_symbol ?? 'RWA',
+          reservation.token_quantity ?? 0,
+          `INV-${reservation.id.slice(0, 8)}`
+        )
+
+        await ctx.prisma.reservation.update({
+          where: { id: reservation.id },
+          data:  { status: 'settled', blockchain_tx_hash: result.txHash },
+        })
+
+        results.success++
+      } catch (e: any) {
+        results.failed++
+        results.errors.push(`${reservation.id}: ${e.message}`)
+      }
+    }
+
+    await ctx.prisma.auditLog.create({
+      data: {
+        actor_user_id: ctx.userId,
+        action:        'process_all_token_jobs',
+        entity_type:   'reservation',
+        entity_id:     'batch',
+        new_value:     JSON.stringify(results),
+      },
+    })
+
+    return results
+  }),
 })
