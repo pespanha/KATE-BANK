@@ -50,6 +50,13 @@ export function Navbar() {
               Dashboard
             </Link>
             <Link
+              href="/portfolio"
+              className="flex items-center gap-1.5 text-sm font-medium text-white/70 hover:text-kate-yellow transition-colors px-3 py-2"
+            >
+              <Wallet size={16} />
+              Portfólio
+            </Link>
+            <Link
               href="/auth/login"
               className="text-sm font-medium text-white/70 hover:text-white border border-white/20 hover:border-white/40 rounded-lg px-4 py-2 transition-all"
             >
