@@ -383,6 +383,98 @@ export class SimulatedStellarClient {
   }
 }
 
+// ─── PIX → BRZ Simulation (SEP-24 MVP) ──────────────────────────────────────
+
+/**
+ * Hardcoded "Banco Emissor BRZ" keypair for Testnet simulation.
+ * This account issues the BRZ stablecoin on the Stellar Testnet.
+ * In production, this would be a real regulated stablecoin issuer.
+ */
+const BANK_BRZ_SECRET = 'SCZANGBA5YHTNYVVV3C7CAZMCLN4MFOZPUDZ4INPMAG2OFBQRQGOHEJI'
+const BANK_BRZ_PUBLIC = 'GBXM2IXKBNAOSOA64GCKBNHFSFCJUXE4SQFGFPJOXVGWGGURJ7KVFLIT'
+
+/**
+ * Simulate a PIX deposit that mints BRZ stablecoins to a user's Stellar wallet.
+ *
+ * Steps:
+ *   1. Ensure bank account is funded on Testnet (Friendbot, idempotent)
+ *   2. User establishes ChangeTrust for BRZ asset (signed with user's secret)
+ *   3. Bank sends `amount` BRZ to user (signed with bank's secret)
+ *
+ * @param userPublicKey  - Stellar public key of the investor
+ * @param userSecretKey  - Stellar secret key of the investor (custodial)
+ * @param amount         - Amount in BRZ (string, e.g. "1000")
+ * @returns txHash of the payment transaction
+ */
+export async function simulatePixToBRZ(
+  userPublicKey: string,
+  userSecretKey: string,
+  amount: string
+): Promise<{ success: boolean; txHash: string; assetCode: string; issuer: string }> {
+  const server = new StellarSdk.Horizon.Server(TESTNET_URL)
+  const networkPassphrase = StellarSdk.Networks.TESTNET
+  const bankKeypair = StellarSdk.Keypair.fromSecret(BANK_BRZ_SECRET)
+  const userKeypair = StellarSdk.Keypair.fromSecret(userSecretKey)
+  const brzAsset = new StellarSdk.Asset('BRZ', BANK_BRZ_PUBLIC)
+
+  // 1. Ensure bank account exists on Testnet (idempotent — Friendbot returns 400 if already funded)
+  try {
+    await server.loadAccount(BANK_BRZ_PUBLIC)
+  } catch {
+    console.log('[BRZ] Funding bank account via Friendbot...')
+    await fetch(`https://friendbot.stellar.org?addr=${BANK_BRZ_PUBLIC}`)
+    // Wait briefly for ledger propagation
+    await new Promise(r => setTimeout(r, 2000))
+  }
+
+  // 2. User establishes ChangeTrust for BRZ (allows receiving the asset)
+  const userAccount = await server.loadAccount(userPublicKey)
+  const trustTx = new StellarSdk.TransactionBuilder(userAccount, {
+    fee: StellarSdk.BASE_FEE,
+    networkPassphrase,
+  })
+    .addOperation(
+      StellarSdk.Operation.changeTrust({
+        asset: brzAsset,
+        limit: '100000000', // 100M BRZ max
+      })
+    )
+    .setTimeout(30)
+    .build()
+
+  trustTx.sign(userKeypair)
+  await server.submitTransaction(trustTx)
+  console.log(`[BRZ] Trustline established for ${userPublicKey}`)
+
+  // 3. Bank sends BRZ to user (simulates the PIX → mint)
+  const bankAccount = await server.loadAccount(BANK_BRZ_PUBLIC)
+  const payTx = new StellarSdk.TransactionBuilder(bankAccount, {
+    fee: StellarSdk.BASE_FEE,
+    networkPassphrase,
+  })
+    .addOperation(
+      StellarSdk.Operation.payment({
+        destination: userPublicKey,
+        asset: brzAsset,
+        amount, // e.g. "1000" = R$ 1.000
+      })
+    )
+    .addMemo(StellarSdk.Memo.text('PIX BRZ Deposit'))
+    .setTimeout(30)
+    .build()
+
+  payTx.sign(bankKeypair)
+  const result = await server.submitTransaction(payTx)
+  console.log(`[BRZ] Payment sent: ${amount} BRZ → ${userPublicKey} | tx: ${result.hash}`)
+
+  return {
+    success: true,
+    txHash: result.hash,
+    assetCode: 'BRZ',
+    issuer: BANK_BRZ_PUBLIC,
+  }
+}
+
 // ─── Factory ─────────────────────────────────────────────────────────────────
 
 export function createStellarClient(env: StellarEnv): StellarClient | SimulatedStellarClient {

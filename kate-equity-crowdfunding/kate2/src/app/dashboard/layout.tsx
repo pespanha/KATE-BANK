@@ -8,6 +8,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <h2 style={{ color: 'var(--kate-yellow)', marginBottom: '2rem' }}>Meu Painel</h2>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <Link href="/dashboard" style={{ color: 'white', textDecoration: 'none' }}>Visão Geral</Link>
+          <Link href="/dashboard/depositar" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none' }}>💰 Depositar BRZ</Link>
           <Link href="/dashboard/reservations" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none' }}>Minhas Reservas</Link>
           <Link href="/dashboard/portfolio" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none' }}>Portfólio</Link>
           <Link href="/dashboard/settings" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none' }}>Configurações</Link>

@@ -3,6 +3,7 @@ import { redirect }     from 'next/navigation'
 import prisma           from '@/lib/prisma'
 import Link             from 'next/link'
 import { Wallet, TrendingUp, Clock, ArrowRight, Star, AlertCircle } from 'lucide-react'
+import { LiveBalanceCard } from '@/components/LiveBalanceCard'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: 'Dashboard do Investidor' }
@@ -80,6 +81,9 @@ export default async function DashboardPage() {
           </Link>
         </div>
       )}
+
+      {/* Live Blockchain Balance (Client Component) */}
+      {hasWallet && <LiveBalanceCard />}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -201,38 +205,6 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Wallet Info */}
-      {wallet && (
-        <div className="mt-6 bg-kate-dark-blue border border-white/10 rounded-2xl p-6">
-          <h2 className="font-bold text-white mb-4 flex items-center gap-2">
-            <Wallet size={18} className="text-kate-yellow" /> Minha Wallet Stellar
-          </h2>
-          <div className="flex flex-wrap gap-6">
-            <div>
-              <span className="text-white/40 text-xs block mb-1">Chave Pública</span>
-              <code className="text-white/80 text-xs font-mono bg-white/5 px-3 py-1.5 rounded-lg">
-                {wallet.stellar_public_key}
-              </code>
-            </div>
-            <div>
-              <span className="text-white/40 text-xs block mb-1">Status</span>
-              <span className="text-green-400 text-sm font-medium">{wallet.status}</span>
-            </div>
-            <div>
-              <span className="text-white/40 text-xs block mb-1">Custodia</span>
-              <span className="text-white/80 text-sm">{wallet.custody_type}</span>
-            </div>
-          </div>
-          <a
-            href={`https://stellar.expert/explorer/testnet/account/${wallet.stellar_public_key}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs text-kate-yellow hover:underline mt-3"
-          >
-            Ver na Stellar Explorer →
-          </a>
-        </div>
-      )}
     </div>
   )
 }

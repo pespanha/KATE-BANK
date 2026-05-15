@@ -1,45 +1,66 @@
 import * as StellarSdk from '@stellar/stellar-sdk'
 import prisma from '@/lib/prisma'
-import { createStellarClient } from './client'
-import type { StellarEnv } from './client'
+
+const FRIENDBOT_URL = 'https://friendbot.stellar.org'
+
+// ─── Core: Generate & Fund ────────────────────────────────────────────────────
 
 /**
- * Generate a Stellar keypair and persist the public key to the Wallet table
+ * Generate a new Stellar keypair and fund it via Friendbot (Testnet).
+ * Returns both keys — the caller decides what to persist.
  */
-export async function createWalletForUser(
-  userId: string,
-  env: StellarEnv
-): Promise<{ publicKey: string; secretKey: string }> {
-  const stellarClient = createStellarClient(env)
-  const keypair = stellarClient instanceof Object && 'generateKeypair' in Object.getPrototypeOf(stellarClient)
-    ? (stellarClient as any).constructor.generateKeypair()
-    : StellarSdk.Keypair.random().publicKey()
+export async function generateAndFundWallet(): Promise<{
+  publicKey: string
+  secretKey: string
+}> {
+  const keypair = StellarSdk.Keypair.random()
+  const publicKey = keypair.publicKey()
+  const secretKey = keypair.secret()
 
-  // For simulated, use SimulatedStellarClient.generateKeypair via factory
-  const { StellarClient, SimulatedStellarClient } = await import('./client')
-  const kp = env.STELLAR_KATE_SECRET_KEY && env.STELLAR_SIMULATION_MODE !== 'true'
-    ? StellarClient.generateKeypair()
-    : SimulatedStellarClient.generateKeypair()
+  // Activate on Testnet via Friendbot (10 000 XLM)
+  const res = await fetch(`${FRIENDBOT_URL}?addr=${publicKey}`)
 
-  await prisma.wallet.upsert({
+  if (!res.ok) {
+    const body = await res.text().catch(() => 'Unknown error')
+    throw new Error(
+      `Friendbot funding failed (${res.status}): ${body}`
+    )
+  }
+
+  console.log(`[Stellar] Wallet funded on Testnet: ${publicKey}`)
+  return { publicKey, secretKey }
+}
+
+// ─── Persist to DB ─────────────────────────────────────────────────────────────
+
+/**
+ * Generate a wallet, fund it on Testnet, and persist it to the Wallet table
+ * linked to the given user. Custodial MVP — secret stored in DB.
+ */
+export async function createWalletForUser(userId: string) {
+  const { publicKey, secretKey } = await generateAndFundWallet()
+
+  const wallet = await prisma.wallet.upsert({
     where: { user_id: userId },
     create: {
       user_id: userId,
-      stellar_public_key: kp.publicKey,
+      stellar_public_key: publicKey,
+      encrypted_secret: secretKey, // MVP: plain-text, use KMS in prod
       custody_type: 'custodial',
-      key_provider: env.STELLAR_SIMULATION_MODE === 'true' ? 'simulated' : 'kate_custody',
+      key_provider: 'kate_custody',
       status: 'active',
     },
     update: {
-      stellar_public_key: kp.publicKey,
+      stellar_public_key: publicKey,
+      encrypted_secret: secretKey,
       status: 'active',
     },
   })
 
-  // NOTE: secretKey should be encrypted and stored in a secure vault in production
-  // For now, we return it once so the client can store it (or we custody it server-side)
-  return kp
+  return { publicKey, walletId: wallet.id }
 }
+
+// ─── Queries ───────────────────────────────────────────────────────────────────
 
 /**
  * Get a user's Stellar public key from the database

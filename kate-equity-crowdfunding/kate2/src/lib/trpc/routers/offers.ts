@@ -121,4 +121,102 @@ export const offersRouter = router({
 
       return { totalRaised, totalTokens, investorCount, progress: Math.min(progress, 100) }
     }),
+
+  /** Get which premium documents the logged-in user has unlocked for an offer */
+  getDocumentAccesses: protectedProcedure
+    .input(z.object({ offerId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const accesses = await ctx.prisma.documentAccess.findMany({
+        where: {
+          user_id: ctx.userId,
+          document: { offer_id: input.offerId },
+        },
+        select: { document_id: true, tx_hash: true },
+      })
+      // Return as a Set-friendly record: { [documentId]: txHash }
+      const map: Record<string, string> = {}
+      for (const a of accesses) {
+        map[a.document_id] = a.tx_hash ?? ''
+      }
+      return map
+    }),
+
+  /** Unlock a premium document via XLM micropayment on Stellar */
+  unlockPremiumDocument: protectedProcedure
+    .input(z.object({ documentId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      // 1. Load the document
+      const doc = await ctx.prisma.offerDocument.findUnique({
+        where: { id: input.documentId },
+      })
+      if (!doc) throw new Error('Documento não encontrado.')
+      if (!doc.isPremium) throw new Error('Este documento não requer pagamento.')
+
+      const priceXLM = doc.priceXLM ?? 1 // default 1 XLM
+
+      // 2. Check if already unlocked
+      const existing = await ctx.prisma.documentAccess.findUnique({
+        where: { user_id_document_id: { user_id: ctx.userId, document_id: input.documentId } },
+      })
+      if (existing) {
+        return { alreadyUnlocked: true, fileUrl: doc.file_url, txHash: existing.tx_hash }
+      }
+
+      // 3. Get user's custodial wallet
+      const wallet = await ctx.prisma.wallet.findUnique({
+        where: { user_id: ctx.userId },
+        select: { stellar_public_key: true, encrypted_secret: true },
+      })
+      if (!wallet?.encrypted_secret) {
+        throw new Error('Wallet não encontrada. Complete o onboarding primeiro.')
+      }
+
+      // 4. Execute XLM payment on Stellar
+      const StellarSdk = await import('@stellar/stellar-sdk')
+      const server = new StellarSdk.Horizon.Server('https://horizon-testnet.stellar.org')
+      const networkPassphrase = StellarSdk.Networks.TESTNET
+
+      // Platform receives the micropayment (use KATE public key or a dedicated treasury)
+      const PLATFORM_PUBLIC = process.env.STELLAR_KATE_PUBLIC_KEY
+        || 'GBXM2IXKBNAOSOA64GCKBNHFSFCJUXE4SQFGFPJOXVGWGGURJ7KVFLIT' // fallback to BRZ bank
+
+      const userKeypair = StellarSdk.Keypair.fromSecret(wallet.encrypted_secret)
+      const userAccount = await server.loadAccount(wallet.stellar_public_key)
+
+      const tx = new StellarSdk.TransactionBuilder(userAccount, {
+        fee: StellarSdk.BASE_FEE,
+        networkPassphrase,
+      })
+        .addOperation(
+          StellarSdk.Operation.payment({
+            destination: PLATFORM_PUBLIC,
+            asset: StellarSdk.Asset.native(), // XLM
+            amount: priceXLM.toString(),
+          })
+        )
+        .addMemo(StellarSdk.Memo.text(`x402:${input.documentId.substring(0, 20)}`))
+        .setTimeout(30)
+        .build()
+
+      tx.sign(userKeypair)
+      const result = await server.submitTransaction(tx)
+
+      // 5. Record access in DB
+      await ctx.prisma.documentAccess.create({
+        data: {
+          user_id:     ctx.userId,
+          document_id: input.documentId,
+          tx_hash:     result.hash,
+          amount_xlm:  priceXLM,
+        },
+      })
+
+      console.log(`[x402] Document ${input.documentId} unlocked by ${ctx.userId} | ${priceXLM} XLM | tx: ${result.hash}`)
+
+      return {
+        alreadyUnlocked: false,
+        fileUrl: doc.file_url ?? `/documents/${input.documentId}.pdf`,
+        txHash: result.hash,
+      }
+    }),
 })

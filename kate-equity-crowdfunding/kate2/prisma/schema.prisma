@@ -32,6 +32,7 @@ model User {
   compliance_checks     ComplianceCheck[]      @relation("Reviewer")
   audit_logs            AuditLog[]             @relation("Actor")
   offer_documents       OfferDocument[]        @relation("Uploader")
+  document_accesses     DocumentAccess[]
 }
 
 model InvestorProfile {
@@ -56,6 +57,7 @@ model Wallet {
   user_id            String   @unique
   user               User     @relation(fields: [user_id], references: [id])
   stellar_public_key String   @unique
+  encrypted_secret   String?  // MVP: secret key for custodial signing (use KMS in prod)
   custody_type       String?  // custodial, mpc, self_custody
   key_provider       String?
   status             String?
@@ -136,9 +138,13 @@ model OfferDocument {
   file_url      String?
   hash          String?
   is_public     Boolean?
+  isPremium     Boolean  @default(false)
+  priceXLM      Float?
   uploaded_by   String?
   uploader      User?    @relation("Uploader", fields: [uploaded_by], references: [id])
   created_at    DateTime @default(now())
+
+  document_accesses DocumentAccess[]
 }
 
 model EssentialOfferInfo {
@@ -288,4 +294,17 @@ model AuditLog {
   ip_address     String?
   user_agent     String?
   created_at     DateTime @default(now())
+}
+
+model DocumentAccess {
+  id           String        @id @default(uuid())
+  user_id      String
+  user         User          @relation(fields: [user_id], references: [id])
+  document_id  String
+  document     OfferDocument @relation(fields: [document_id], references: [id])
+  tx_hash      String?       // Stellar transaction hash as proof-of-payment
+  amount_xlm   Float?
+  created_at   DateTime      @default(now())
+
+  @@unique([user_id, document_id])
 }

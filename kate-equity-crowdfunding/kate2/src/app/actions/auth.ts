@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
+import { createWalletForUser } from '@/lib/stellar/wallet'
 
 export async function signUpUser(formData: any) {
   const supabase = await createClient()
@@ -16,7 +17,7 @@ export async function signUpUser(formData: any) {
     return { error: authError?.message || 'Erro ao criar conta no Supabase' }
   }
 
-  // 2. Prisma sync
+  // 2. Prisma sync — create user + investor profile
   try {
     const user = await prisma.user.create({
       data: {
@@ -38,6 +39,16 @@ export async function signUpUser(formData: any) {
         }
       }
     })
+
+    // 3. Generate Stellar wallet (Testnet) and persist to DB
+    try {
+      const { publicKey } = await createWalletForUser(user.id)
+      console.log(`[Onboarding] Wallet created for user ${user.id}: ${publicKey}`)
+    } catch (walletErr: any) {
+      // Wallet creation is non-blocking — user can still use the platform.
+      // A retry mechanism or admin action can fix this later.
+      console.error('[Onboarding] Wallet creation failed (non-blocking):', walletErr.message)
+    }
 
     return { success: true }
   } catch (err: any) {

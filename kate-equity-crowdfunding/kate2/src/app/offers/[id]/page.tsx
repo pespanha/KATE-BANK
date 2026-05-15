@@ -3,8 +3,9 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import {
   ArrowLeft, Shield, Calendar, TrendingUp,
-  FileText, AlertTriangle, ExternalLink, Users
+  FileText, AlertTriangle, ExternalLink, Users, FolderLock
 } from 'lucide-react'
+import { PremiumDocumentList } from '@/components/PremiumDocumentList'
 import type { Metadata } from 'next'
 
 interface Props { params: Promise<{ id: string }> }
@@ -59,6 +60,16 @@ export default async function OfferDetailPage({ params }: Props) {
     cancelled: { label: 'Cancelada',  color: 'text-red-400 bg-red-400/10 border-red-400/20' },
   }
   const st = statusLabel[offer.status ?? 'draft'] ?? statusLabel['draft']
+
+  // Serialize documents for client component
+  const docsForClient = offer.offer_documents.map(d => ({
+    id: d.id,
+    document_type: d.document_type,
+    file_url: d.file_url,
+    is_public: d.is_public,
+    isPremium: d.isPremium,
+    priceXLM: d.priceXLM,
+  }))
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -137,6 +148,16 @@ export default async function OfferDetailPage({ params }: Props) {
               <div className="text-sm text-white/60 leading-relaxed whitespace-pre-line">
                 {info.company_info}
               </div>
+            </section>
+          )}
+
+          {/* Data Room (Documents with Premium Lock) */}
+          {offer.offer_documents.length > 0 && (
+            <section className="bg-kate-dark-blue border border-white/10 rounded-2xl p-6">
+              <h2 className="font-bold text-white text-lg mb-4 flex items-center gap-2">
+                <FolderLock size={18} className="text-kate-yellow" /> Data Room
+              </h2>
+              <PremiumDocumentList documents={docsForClient} offerId={offer.id} />
             </section>
           )}
 

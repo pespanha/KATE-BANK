@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { router, publicProcedure, protectedProcedure, adminProcedure } from '../init'
-import { createStellarClient } from '@/lib/stellar/client'
+import { createStellarClient, simulatePixToBRZ } from '@/lib/stellar/client'
+import prisma from '@/lib/prisma'
 
 const stellarEnv = {
   STELLAR_KATE_SECRET_KEY:  process.env.STELLAR_KATE_SECRET_KEY,
@@ -125,4 +126,78 @@ export const stellarRouter = router({
       const client = createStellarClient(stellarEnv)
       return { url: client.getExplorerUrl(input.txHash) }
     }),
+
+  /** Simulate a PIX deposit → BRZ on Stellar Testnet */
+  simulatePixDeposit: protectedProcedure
+    .input(z.object({
+      amount: z.string().regex(/^\d+(\.\d{1,2})?$/, 'Valor inválido'),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // Fetch user's custodial wallet from DB
+      const wallet = await prisma.wallet.findUnique({
+        where: { user_id: ctx.userId },
+        select: { stellar_public_key: true, encrypted_secret: true },
+      })
+
+      if (!wallet || !wallet.encrypted_secret) {
+        throw new Error('Wallet não encontrada. Complete o onboarding primeiro.')
+      }
+
+      const result = await simulatePixToBRZ(
+        wallet.stellar_public_key,
+        wallet.encrypted_secret,
+        input.amount
+      )
+
+      return result
+    }),
+
+  /** Get live balances (BRZ + XLM) directly from Stellar Horizon */
+  getLiveBalances: protectedProcedure.query(async ({ ctx }) => {
+    const wallet = await prisma.wallet.findUnique({
+      where: { user_id: ctx.userId },
+      select: { stellar_public_key: true },
+    })
+
+    if (!wallet) {
+      return { xlm: '0', brz: '0', publicKey: null, hasWallet: false }
+    }
+
+    const StellarSdk = await import('@stellar/stellar-sdk')
+    const server = new StellarSdk.Horizon.Server('https://horizon-testnet.stellar.org')
+
+    try {
+      const account = await server.loadAccount(wallet.stellar_public_key)
+
+      let xlm = '0'
+      let brz = '0'
+
+      for (const bal of account.balances) {
+        if (bal.asset_type === 'native') {
+          xlm = bal.balance
+        }
+        if (
+          bal.asset_type !== 'native' &&
+          (bal as StellarSdk.Horizon.HorizonApi.BalanceLineAsset).asset_code === 'BRZ'
+        ) {
+          brz = (bal as StellarSdk.Horizon.HorizonApi.BalanceLineAsset).balance
+        }
+      }
+
+      return {
+        xlm,
+        brz,
+        publicKey: wallet.stellar_public_key,
+        hasWallet: true,
+      }
+    } catch {
+      // Account may not exist on-chain yet
+      return {
+        xlm: '0',
+        brz: '0',
+        publicKey: wallet.stellar_public_key,
+        hasWallet: true,
+      }
+    }
+  }),
 })
