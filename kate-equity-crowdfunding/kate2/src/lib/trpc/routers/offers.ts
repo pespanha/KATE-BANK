@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { router, publicProcedure, protectedProcedure } from '../init'
+import { router, publicProcedure, protectedProcedure, adminProcedure } from '../init'
 import { executeDirectBrzInvest, executeDefiSwapAndInvest } from '@/lib/stellar/client'
 
 export const offersRouter = router({
@@ -50,7 +50,7 @@ export const offersRouter = router({
     }),
 
   /** List all offers (admin) */
-  listAll: protectedProcedure.query(async ({ ctx }) => {
+  listAll: adminProcedure.query(async ({ ctx }) => {
     return ctx.prisma.offer.findMany({
       include: {
         issuer:       true,
@@ -62,7 +62,7 @@ export const offersRouter = router({
   }),
 
   /** Create a new offer (admin) */
-  create: protectedProcedure
+  create: adminProcedure
     .input(z.object({
       issuer_id:             z.string(),
       title:                 z.string(),
@@ -90,7 +90,7 @@ export const offersRouter = router({
     }),
 
   /** Update offer status */
-  updateStatus: protectedProcedure
+  updateStatus: adminProcedure
     .input(z.object({
       id:     z.string(),
       status: z.enum(['draft', 'active', 'funded', 'failed', 'cancelled']),
