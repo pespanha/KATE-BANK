@@ -413,8 +413,24 @@ export async function simulatePixToBRZ(
 ): Promise<{ success: boolean; txHash: string; assetCode: string; issuer: string }> {
   const server = new StellarSdk.Horizon.Server(TESTNET_URL)
   const networkPassphrase = StellarSdk.Networks.TESTNET
-  const bankKeypair = StellarSdk.Keypair.fromSecret(BANK_BRZ_SECRET)
-  const userKeypair = StellarSdk.Keypair.fromSecret(userSecretKey)
+
+  let bankKeypair: StellarSdk.Keypair
+  let userKeypair: StellarSdk.Keypair
+
+  try {
+    bankKeypair = StellarSdk.Keypair.fromSecret(BANK_BRZ_SECRET)
+  } catch (err) {
+    console.error('[BRZ] Invalid BANK secret key:', err)
+    throw new Error('Configuração do banco BRZ inválida. Contate o administrador.')
+  }
+
+  try {
+    userKeypair = StellarSdk.Keypair.fromSecret(userSecretKey)
+  } catch (err) {
+    console.error('[BRZ] Invalid USER secret key:', err)
+    throw new Error('Chave da wallet inválida. Recrie sua wallet no onboarding.')
+  }
+
   const brzAsset = new StellarSdk.Asset('BRZ', BANK_BRZ_PUBLIC)
 
   // 1. Ensure bank account exists on Testnet (idempotent — Friendbot returns 400 if already funded)
@@ -424,6 +440,15 @@ export async function simulatePixToBRZ(
     console.log('[BRZ] Funding bank account via Friendbot...')
     await fetch(`https://friendbot.stellar.org?addr=${BANK_BRZ_PUBLIC}`)
     // Wait briefly for ledger propagation
+    await new Promise(r => setTimeout(r, 2000))
+  }
+
+  // Also ensure user account is funded
+  try {
+    await server.loadAccount(userPublicKey)
+  } catch {
+    console.log('[BRZ] Funding user account via Friendbot...')
+    await fetch(`https://friendbot.stellar.org?addr=${userPublicKey}`)
     await new Promise(r => setTimeout(r, 2000))
   }
 
