@@ -38,7 +38,7 @@ export default async function AdminOfertasPage() {
           </h1>
           <p className="text-white/40 text-sm mt-1">{offers.length} ofertas cadastradas</p>
         </div>
-        <button className="flex items-center gap-2 bg-kate-yellow text-kate-dark-blue font-bold px-4 py-2 rounded-xl text-sm hover:brightness-110 transition-all">
+        <button className="flex items-center gap-2 bg-kate-orange text-kate-navy font-bold px-4 py-2 rounded-xl text-sm hover:brightness-110 transition-all">
           <Plus size={16} /> Nova Oferta
         </button>
       </div>

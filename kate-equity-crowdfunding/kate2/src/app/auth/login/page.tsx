@@ -106,7 +106,7 @@ export default function LoginPage() {
               id="login-submit"
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-kate-yellow text-kate-dark-blue font-bold py-3.5 rounded-xl hover:brightness-110 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-kate-yellow/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0"
+              className="w-full flex items-center justify-center gap-2 bg-kate-orange text-kate-navy font-bold py-3.5 rounded-xl hover:brightness-110 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-kate-yellow/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-kate-dark-blue/30 border-t-kate-dark-blue rounded-full animate-spin" />

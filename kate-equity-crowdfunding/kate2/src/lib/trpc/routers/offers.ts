@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { router, publicProcedure, protectedProcedure } from '../init'
+import { executeDirectBrzInvest, executeDefiSwapAndInvest } from '@/lib/stellar/client'
 
 export const offersRouter = router({
   /** List all active offers (public) */
@@ -217,6 +218,100 @@ export const offersRouter = router({
         alreadyUnlocked: false,
         fileUrl: doc.file_url ?? `/documents/${input.documentId}.pdf`,
         txHash: result.hash,
+      }
+    }),
+
+  /** Process an investment — BRZ direct or USDC via SDEX swap → Escrow */
+  processInvestment: protectedProcedure
+    .input(z.object({
+      offerId:  z.string(),
+      amount:   z.number().positive(),
+      currency: z.enum(['BRZ', 'USDC']),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // 1. Load and validate the offer
+      const offer = await ctx.prisma.offer.findUnique({
+        where: { id: input.offerId },
+        select: {
+          id: true,
+          status: true,
+          unit_price: true,
+          min_investment: true,
+          max_target: true,
+          end_date: true,
+        },
+      })
+      if (!offer) throw new Error('Oferta não encontrada.')
+      if (offer.status !== 'active') throw new Error('Esta oferta não está aberta para investimentos.')
+
+      if (offer.end_date && new Date(offer.end_date) < new Date()) {
+        throw new Error('O prazo desta oferta expirou.')
+      }
+
+      if (offer.min_investment && input.amount < offer.min_investment) {
+        throw new Error(`Investimento mínimo: R$ ${offer.min_investment.toLocaleString('pt-BR')}`)
+      }
+
+      // 2. Get user's custodial wallet
+      const wallet = await ctx.prisma.wallet.findUnique({
+        where: { user_id: ctx.userId },
+        select: { stellar_public_key: true, encrypted_secret: true },
+      })
+      if (!wallet?.encrypted_secret) {
+        throw new Error('Wallet não encontrada. Complete o onboarding primeiro.')
+      }
+
+      // 3. Execute the on-chain payment
+      let txResult: { success: boolean; txHash: string; route: string }
+
+      if (input.currency === 'USDC') {
+        // DeFi route: USDC → SDEX pathPaymentStrictReceive → BRZ → Escrow
+        // Add 5% slippage buffer for the SDEX swap
+        const maxUSDC = (input.amount * 1.05).toFixed(2)
+        const expectedBRZ = input.amount.toFixed(2)
+
+        txResult = await executeDefiSwapAndInvest(
+          wallet.encrypted_secret,
+          maxUSDC,
+          expectedBRZ
+        )
+      } else {
+        // Direct BRZ payment → Escrow
+        txResult = await executeDirectBrzInvest(
+          wallet.encrypted_secret,
+          input.amount.toFixed(2)
+        )
+      }
+
+      // 4. Calculate token quantity
+      const unitPrice = offer.unit_price ?? 1
+      const tokenQuantity = input.amount / unitPrice
+
+      // 5. Create reservation record
+      const reservation = await ctx.prisma.reservation.create({
+        data: {
+          offer_id:            input.offerId,
+          investor_id:         ctx.userId,
+          amount_brz:          input.amount,
+          token_quantity:      tokenQuantity,
+          unit_price:          unitPrice,
+          status:              'pending_escrow',
+          blockchain_tx_hash:  txResult.txHash,
+          withdrawal_deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5 days CVM 88
+        },
+      })
+
+      console.log(
+        `[Invest] ${ctx.userId} invested R$ ${input.amount} (${input.currency}) in offer ${input.offerId} ` +
+        `| ${tokenQuantity} tokens | route: ${txResult.route} | tx: ${txResult.txHash}`
+      )
+
+      return {
+        reservationId: reservation.id,
+        txHash: txResult.txHash,
+        route: txResult.route,
+        tokenQuantity,
+        withdrawalDeadline: reservation.withdrawal_deadline,
       }
     }),
 })

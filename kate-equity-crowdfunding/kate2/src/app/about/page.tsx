@@ -72,7 +72,7 @@ export default function AboutPage() {
             A Kate Equity é uma plataforma de Equity Crowdfunding regulada pela CVM 88 que conecta investidores a startups e PMEs por meio de tokens de ativos reais (RWA) na rede Stellar.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/offers" className="flex items-center gap-2 px-8 py-4 bg-kate-yellow text-kate-dark-blue font-bold rounded-xl hover:opacity-90 transition-opacity text-base">
+            <Link href="/offers" className="flex items-center gap-2 px-8 py-4 bg-kate-orange text-kate-navy font-bold rounded-xl hover:opacity-90 transition-opacity text-base">
               Ver oportunidades <ArrowRight className="w-5 h-5" />
             </Link>
             <Link href="/auth" className="flex items-center gap-2 px-8 py-4 border border-white/20 text-white rounded-xl hover:bg-white/5 transition-colors text-base">
@@ -198,7 +198,7 @@ export default function AboutPage() {
           <h2 className="text-3xl font-bold mb-4">Pronto para começar?</h2>
           <p className="text-white/50 mb-8">Crie sua conta gratuitamente e explore as oportunidades disponíveis na Kate Equity.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/auth" className="px-8 py-4 bg-kate-yellow text-kate-dark-blue font-bold rounded-xl hover:opacity-90 transition-opacity">
+            <Link href="/auth" className="px-8 py-4 bg-kate-orange text-kate-navy font-bold rounded-xl hover:opacity-90 transition-opacity">
               Criar conta de investidor
             </Link>
             <Link href="/captar" className="px-8 py-4 border border-white/20 text-white rounded-xl hover:bg-white/5 transition-colors">

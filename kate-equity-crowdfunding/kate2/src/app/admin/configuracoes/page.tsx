@@ -132,7 +132,7 @@ export default function AdminConfiguracoesPage() {
             className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
               saved
                 ? 'bg-green-400/20 text-green-400 border border-green-400/30'
-                : 'bg-kate-yellow text-kate-dark-blue hover:brightness-110'
+                : 'bg-kate-orange text-kate-navy hover:brightness-110'
             }`}
           >
             {saved

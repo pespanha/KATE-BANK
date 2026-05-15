@@ -10,15 +10,21 @@ const config: Config = {
     extend: {
       colors: {
         kate: {
-          yellow:    '#FCA310',
+          // Official brand palette
+          navy:        '#14213C',
+          orange:      '#FCA310',
+          'gray-light':'#CBD1D3',
+          'gray-dark': '#747C7C',
+          // Legacy aliases (keep for backwards compat)
+          yellow:      '#FCA310',
           'dark-blue': '#14213C',
-          'light-gray': '#CBD1D3',
+          'light-gray':'#CBD1D3',
           'dark-gray': '#747C7C',
-          dark:      '#050609',
+          dark:        '#050609',
         },
       },
       fontFamily: {
-        sans: ['Inter', 'Helvetica', 'Arial', 'sans-serif'],
+        sans: ['Helvetica', 'Arial', 'sans-serif'],
       },
       animation: {
         'fade-in':   'fadeIn 0.3s ease-in-out',

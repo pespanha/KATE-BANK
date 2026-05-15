@@ -161,4 +161,20 @@ export const secondaryRouter = router({
         },
       })
     }),
+
+  /** Get ALL open intentions across all tokens (public classified board) */
+  getOpenIntentions: protectedProcedure.query(async ({ ctx }) => {
+    return ctx.prisma.secondaryIntention.findMany({
+      where: { status: 'open' },
+      include: {
+        token_asset: {
+          include: {
+            issuer: { select: { trade_name: true, legal_name: true } },
+          },
+        },
+        user: { select: { full_name: true } },
+      },
+      orderBy: { created_at: 'desc' },
+    })
+  }),
 })

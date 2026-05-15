@@ -123,7 +123,7 @@ export default function DepositarPage() {
             onClick={handleGeneratePix}
             className={`w-full py-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2 ${
               isValidAmount
-                ? 'bg-kate-yellow text-kate-dark-blue hover:brightness-110 cursor-pointer'
+                ? 'bg-kate-orange text-kate-navy hover:brightness-110 cursor-pointer'
                 : 'bg-white/10 text-white/30 cursor-not-allowed'
             }`}
           >
@@ -274,7 +274,7 @@ export default function DepositarPage() {
               id="btn-go-dashboard"
               type="button"
               onClick={() => router.push('/dashboard')}
-              className="w-full py-4 rounded-xl bg-kate-yellow text-kate-dark-blue font-bold text-base hover:brightness-110 transition-all"
+              className="w-full py-4 rounded-xl bg-kate-orange text-kate-navy font-bold text-base hover:brightness-110 transition-all"
             >
               Voltar ao Dashboard
             </button>

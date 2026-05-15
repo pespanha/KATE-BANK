@@ -6,6 +6,7 @@ import {
   FileText, AlertTriangle, ExternalLink, Users, FolderLock
 } from 'lucide-react'
 import { PremiumDocumentList } from '@/components/PremiumDocumentList'
+import { InvestCheckoutCard } from '@/components/InvestCheckoutCard'
 import type { Metadata } from 'next'
 
 interface Props { params: Promise<{ id: string }> }
@@ -211,18 +212,68 @@ export default async function OfferDetailPage({ params }: Props) {
           <div className="sticky top-20 bg-kate-dark-blue border border-white/10 rounded-2xl p-6 space-y-5">
             <h3 className="font-bold text-white text-lg">Investir nesta Oferta</h3>
 
-            {/* Progress */}
+            {/* Giant Animated Progress Bar */}
             <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-white/40">Captado</span>
-                <span className="text-white font-bold">R$ {raised.toLocaleString('pt-BR')}</span>
+              <div className="flex justify-between items-end mb-3">
+                <div>
+                  <p className="text-white/40 text-xs mb-0.5">Captado</p>
+                  <p className="text-white font-extrabold text-2xl tracking-tight">
+                    R$ {raised.toLocaleString('pt-BR')}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-white/40 text-xs mb-0.5">Meta Máxima</p>
+                  <p className="text-white/70 font-bold text-sm">
+                    R$ {(offer.max_target ?? 0).toLocaleString('pt-BR')}
+                  </p>
+                </div>
               </div>
-              <div className="h-2 bg-white/10 rounded-full overflow-hidden mb-1">
-                <div className="h-full bg-kate-yellow rounded-full" style={{ width: `${progress}%` }} />
+
+              {/* Bar container */}
+              <div className="relative h-5 bg-white/[0.06] rounded-full overflow-visible mb-2">
+                {/* Animated fill */}
+                <div
+                  className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-kate-yellow/80 via-kate-yellow to-amber-400"
+                  style={{
+                    width: `${Math.min(progress, 100)}%`,
+                    transition: 'width 1.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                  }}
+                >
+                  {/* Glow on tip */}
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-kate-yellow shadow-[0_0_12px_rgba(252,163,16,0.6)]" />
+                </div>
+
+                {/* Min target (2/3) marker */}
+                {offer.min_target && offer.max_target && (
+                  <div
+                    className="absolute top-0 bottom-0 flex flex-col items-center"
+                    style={{ left: `${((offer.min_target / offer.max_target) * 100).toFixed(1)}%` }}
+                  >
+                    <div className="w-0.5 h-full bg-emerald-400/50" />
+                    <div className="absolute -bottom-5 -translate-x-1/2 left-1/2 whitespace-nowrap">
+                      <span className="text-[9px] font-bold text-emerald-400/70 bg-emerald-400/10 px-1.5 py-0.5 rounded-full">
+                        Meta Mín.
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="flex justify-between text-xs text-white/40">
-                <span>{progress.toFixed(1)}% da meta máxima</span>
-                <span>R$ {(offer.max_target ?? 0).toLocaleString('pt-BR')}</span>
+
+              {/* Labels row */}
+              <div className="flex justify-between items-center text-xs mt-4">
+                <span className={`font-bold ${progress >= 100 ? 'text-emerald-400' : 'text-kate-yellow'}`}>
+                  {progress.toFixed(1)}%
+                </span>
+                <div className="flex items-center gap-3">
+                  {offer.min_target && (
+                    <span className="text-emerald-400/60 text-[10px]">
+                      Mín: R$ {offer.min_target.toLocaleString('pt-BR')}
+                    </span>
+                  )}
+                  <span className="text-white/30">
+                    {investorCount} investidor{investorCount !== 1 ? 'es' : ''}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -251,25 +302,14 @@ export default async function OfferDetailPage({ params }: Props) {
               </div>
             )}
 
-            {/* CTA */}
-            {offer.status === 'active' ? (
-              <Link
-                href={`/checkout?offer=${offer.id}`}
-                className="block w-full text-center bg-kate-yellow text-kate-dark-blue font-bold py-3.5 rounded-xl hover:brightness-110 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-kate-yellow/30 transition-all"
-              >
-                Investir Agora
-              </Link>
-            ) : (
-              <div className="block w-full text-center bg-white/5 text-white/30 font-bold py-3.5 rounded-xl border border-white/10 cursor-not-allowed">
-                Oferta {st.label}
-              </div>
-            )}
-
-            {/* Stellar badge */}
-            <div className="flex items-center justify-center gap-2 text-xs text-white/30 pt-1">
-              <TrendingUp size={12} className="text-green-400" />
-              Tokens emitidos na Stellar Network
-            </div>
+            {/* Investment Checkout (Client Component) */}
+            <InvestCheckoutCard
+              offerId={offer.id}
+              unitPrice={offer.unit_price ?? 0}
+              minInvestment={offer.min_investment ?? 100}
+              isActive={offer.status === 'active'}
+              statusLabel={st.label}
+            />
           </div>
         </div>
       </div>

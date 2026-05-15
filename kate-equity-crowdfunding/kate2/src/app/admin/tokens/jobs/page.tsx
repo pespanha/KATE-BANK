@@ -75,7 +75,7 @@ export default function TokenJobsPage() {
             <button
               onClick={() => processAll.mutate()}
               disabled={batchRunning || !!processingId}
-              className="flex items-center gap-2 px-4 py-2 bg-kate-yellow text-kate-dark-blue font-bold rounded-xl text-sm hover:opacity-90 transition-opacity disabled:opacity-40"
+              className="flex items-center gap-2 px-4 py-2 bg-kate-orange text-kate-navy font-bold rounded-xl text-sm hover:opacity-90 transition-opacity disabled:opacity-40"
             >
               {batchRunning
                 ? <><Loader2 size={14} className="animate-spin" /> Emitindo...</>

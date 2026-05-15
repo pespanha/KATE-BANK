@@ -185,7 +185,7 @@ export default function AdminTokensPage() {
                             job.token_quantity ?? 0
                           )}
                           disabled={isProcessing || !!processingId}
-                          className="flex items-center gap-2 bg-kate-yellow text-kate-dark-blue font-bold px-5 py-2.5 rounded-xl text-sm hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex items-center gap-2 bg-kate-orange text-kate-navy font-bold px-5 py-2.5 rounded-xl text-sm hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isProcessing ? (
                             <><RefreshCw size={14} className="animate-spin" /> Emitindo...</>

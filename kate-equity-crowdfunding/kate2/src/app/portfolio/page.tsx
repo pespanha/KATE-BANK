@@ -59,7 +59,7 @@ export default function PortfolioPage() {
             <p className="text-white/20 text-xs mt-1">Invista em uma oferta para receber tokens Stellar.</p>
             <Link
               href="/offers"
-              className="inline-flex items-center gap-2 mt-4 bg-kate-yellow text-kate-dark-blue font-bold px-4 py-2 rounded-xl text-sm hover:brightness-110 transition-all"
+              className="inline-flex items-center gap-2 mt-4 bg-kate-orange text-kate-navy font-bold px-4 py-2 rounded-xl text-sm hover:brightness-110 transition-all"
             >
               Ver Oportunidades <ArrowUpRight size={14} />
             </Link>

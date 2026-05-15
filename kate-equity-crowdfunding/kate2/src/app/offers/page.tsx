@@ -79,7 +79,7 @@ export default async function OffersPage({ searchParams }: { searchParams: Promi
             ))}
           </select>
         </div>
-        <button type="submit" className="bg-kate-yellow text-kate-dark-blue font-bold px-5 py-2.5 rounded-xl text-sm hover:brightness-110 transition-all">
+        <button type="submit" className="bg-kate-orange text-kate-navy font-bold px-5 py-2.5 rounded-xl text-sm hover:brightness-110 transition-all">
           Filtrar
         </button>
       </form>

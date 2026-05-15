@@ -475,6 +475,133 @@ export async function simulatePixToBRZ(
   }
 }
 
+// ─── DeFi Swap & Invest (SDEX AMM — Path Payment) ───────────────────────────
+
+/**
+ * USDC issuer on Stellar Testnet (Circle's test anchor).
+ * In production this would be the real USDC issuer on Stellar mainnet.
+ */
+const USDC_ISSUER = 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5'
+
+/**
+ * Platform Escrow address — receives investment funds.
+ * In production this would be the Soroban PrimaryEscrow contract address.
+ * For MVP, we use the bank/platform account.
+ */
+const ESCROW_PUBLIC = BANK_BRZ_PUBLIC
+
+/**
+ * Execute a DeFi swap from USDC → BRZ via Stellar's built-in SDEX (DEX)
+ * and deliver the BRZ to the platform escrow.
+ *
+ * Uses `pathPaymentStrictReceive` — the user specifies how much BRZ they
+ * want to arrive at the escrow, and the SDEX finds the best route through
+ * available liquidity pools and order books.
+ *
+ * This demonstrates how Stellar's native AMM eliminates the need for
+ * external DEX aggregators or bridges.
+ *
+ * @param userSecretKey - Investor's custodial secret key
+ * @param amountUSDC    - Maximum USDC the user is willing to spend (slippage buffer)
+ * @param expectedBRZ   - Exact BRZ amount to deliver to escrow
+ */
+export async function executeDefiSwapAndInvest(
+  userSecretKey: string,
+  amountUSDC: string,
+  expectedBRZ: string
+): Promise<{ success: boolean; txHash: string; route: string }> {
+  const server = new StellarSdk.Horizon.Server(TESTNET_URL)
+  const networkPassphrase = StellarSdk.Networks.TESTNET
+
+  const userKeypair = StellarSdk.Keypair.fromSecret(userSecretKey)
+  const userPublicKey = userKeypair.publicKey()
+
+  const usdcAsset = new StellarSdk.Asset('USDC', USDC_ISSUER)
+  const brzAsset = new StellarSdk.Asset('BRZ', BANK_BRZ_PUBLIC)
+
+  // Load the user's account
+  const userAccount = await server.loadAccount(userPublicKey)
+
+  // pathPaymentStrictReceive:
+  //   - sendAsset: USDC (what the user pays with)
+  //   - sendMax: maximum USDC to spend (includes slippage tolerance)
+  //   - destination: escrow address
+  //   - destAsset: BRZ (what the escrow receives)
+  //   - destAmount: exact BRZ to deliver
+  //   - path: [] = let Stellar find the optimal route through the SDEX
+  const tx = new StellarSdk.TransactionBuilder(userAccount, {
+    fee: StellarSdk.BASE_FEE,
+    networkPassphrase,
+  })
+    .addOperation(
+      StellarSdk.Operation.pathPaymentStrictReceive({
+        sendAsset: usdcAsset,
+        sendMax: amountUSDC,        // slippage buffer (e.g., "210" for ~5% on 200 USDC)
+        destination: ESCROW_PUBLIC,
+        destAsset: brzAsset,
+        destAmount: expectedBRZ,    // exact BRZ to arrive (e.g., "1000")
+        path: [],                   // SDEX auto-routes through best liquidity
+      })
+    )
+    .addMemo(StellarSdk.Memo.text('INVEST USDC>BRZ SDEX'))
+    .setTimeout(60)
+    .build()
+
+  tx.sign(userKeypair)
+  const result = await server.submitTransaction(tx)
+
+  console.log(`[DeFi] SDEX swap: ${amountUSDC} USDC → ${expectedBRZ} BRZ → Escrow | tx: ${result.hash}`)
+
+  return {
+    success: true,
+    txHash: result.hash,
+    route: 'USDC → SDEX → BRZ → Escrow',
+  }
+}
+
+/**
+ * Direct BRZ payment from investor → escrow.
+ * Used when the investor already has BRZ (from PIX deposit).
+ */
+export async function executeDirectBrzInvest(
+  userSecretKey: string,
+  amount: string
+): Promise<{ success: boolean; txHash: string; route: string }> {
+  const server = new StellarSdk.Horizon.Server(TESTNET_URL)
+  const networkPassphrase = StellarSdk.Networks.TESTNET
+
+  const userKeypair = StellarSdk.Keypair.fromSecret(userSecretKey)
+  const brzAsset = new StellarSdk.Asset('BRZ', BANK_BRZ_PUBLIC)
+
+  const userAccount = await server.loadAccount(userKeypair.publicKey())
+
+  const tx = new StellarSdk.TransactionBuilder(userAccount, {
+    fee: StellarSdk.BASE_FEE,
+    networkPassphrase,
+  })
+    .addOperation(
+      StellarSdk.Operation.payment({
+        destination: ESCROW_PUBLIC,
+        asset: brzAsset,
+        amount,
+      })
+    )
+    .addMemo(StellarSdk.Memo.text('INVEST BRZ DIRECT'))
+    .setTimeout(30)
+    .build()
+
+  tx.sign(userKeypair)
+  const result = await server.submitTransaction(tx)
+
+  console.log(`[Invest] Direct BRZ: ${amount} BRZ → Escrow | tx: ${result.hash}`)
+
+  return {
+    success: true,
+    txHash: result.hash,
+    route: 'BRZ → Escrow (direct)',
+  }
+}
+
 // ─── Factory ─────────────────────────────────────────────────────────────────
 
 export function createStellarClient(env: StellarEnv): StellarClient | SimulatedStellarClient {
@@ -494,3 +621,4 @@ export function getStellarConfigDebug(env: StellarEnv) {
     isSimulated: !env.STELLAR_KATE_SECRET_KEY || env.STELLAR_SIMULATION_MODE === 'true',
   }
 }
+

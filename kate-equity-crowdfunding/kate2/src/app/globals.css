@@ -4,6 +4,12 @@
 
 /* ─── Kate CSS Variables (used as fallback & non-Tailwind contexts) ─── */
 :root {
+  /* Official brand tokens */
+  --kate-navy:       #14213C;
+  --kate-orange:     #FCA310;
+  --kate-gray-light: #CBD1D3;
+  --kate-gray-dark:  #747C7C;
+  /* Legacy aliases */
   --kate-yellow:     #FCA310;
   --kate-dark-blue:  #14213C;
   --kate-light-gray: #CBD1D3;
@@ -23,7 +29,7 @@
 html { scroll-behavior: smooth; }
 
 body {
-  font-family: 'Inter', 'Helvetica', Arial, sans-serif;
+  font-family: 'Helvetica', Arial, sans-serif;
   background-color: #050609;
   color: #f8fafc;
   line-height: 1.5;

@@ -220,7 +220,7 @@ export function PremiumDocumentList({ documents, offerId }: Props) {
                   </button>
                   <button
                     onClick={() => handleUnlockConfirm(dialogDoc)}
-                    className="flex-1 py-3 rounded-xl bg-kate-yellow text-kate-dark-blue font-bold hover:brightness-110 transition-all flex items-center justify-center gap-2"
+                    className="flex-1 py-3 rounded-xl bg-kate-orange text-kate-navy font-bold hover:brightness-110 transition-all flex items-center justify-center gap-2"
                   >
                     <Zap size={16} />
                     Pagar {dialogDoc.priceXLM ?? 1} XLM
@@ -255,7 +255,7 @@ export function PremiumDocumentList({ documents, offerId }: Props) {
                     setDialogDoc(null)
                     setSuccessInfo(null)
                   }}
-                  className="w-full py-3 rounded-xl bg-kate-yellow text-kate-dark-blue font-bold hover:brightness-110 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-kate-orange text-kate-navy font-bold hover:brightness-110 transition-all flex items-center justify-center gap-2"
                 >
                   <FileText size={16} />
                   Abrir Documento

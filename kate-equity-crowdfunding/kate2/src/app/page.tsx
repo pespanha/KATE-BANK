@@ -103,7 +103,7 @@ export default async function HomePage() {
 
             <div className="flex flex-wrap gap-4">
               <Link href="/offers"
-                className="flex items-center gap-2 bg-kate-yellow text-kate-dark-blue font-bold px-6 py-3.5 rounded-xl hover:-translate-y-0.5 hover:shadow-xl hover:shadow-kate-yellow/30 transition-all">
+                className="flex items-center gap-2 bg-kate-orange text-kate-navy font-bold px-6 py-3.5 rounded-xl hover:-translate-y-0.5 hover:shadow-xl hover:shadow-kate-yellow/30 transition-all">
                 Ver Oportunidades <ArrowRight size={18} />
               </Link>
               <Link href="/about"
@@ -251,7 +251,7 @@ export default async function HomePage() {
             Crie sua conta gratuitamente, complete o KYC e comece a investir em minutos.
           </p>
           <Link href="/auth/cadastro"
-            className="inline-flex items-center gap-2 bg-kate-yellow text-kate-dark-blue font-bold px-8 py-4 rounded-xl text-lg hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-kate-yellow/30 transition-all">
+            className="inline-flex items-center gap-2 bg-kate-orange text-kate-navy font-bold px-8 py-4 rounded-xl text-lg hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-kate-yellow/30 transition-all">
             Criar Conta Gratuita <ArrowRight size={20} />
           </Link>
         </div>

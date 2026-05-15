@@ -2,8 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect }     from 'next/navigation'
 import prisma           from '@/lib/prisma'
 import Link             from 'next/link'
-import { Wallet, TrendingUp, Clock, ArrowRight, Star, AlertCircle } from 'lucide-react'
+import { Wallet, TrendingUp, ArrowRight, AlertCircle } from 'lucide-react'
 import { LiveBalanceCard } from '@/components/LiveBalanceCard'
+import { DashboardKPICards } from '@/components/DashboardKPICards'
+import { PortfolioTable } from '@/components/PortfolioTable'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: 'Dashboard do Investidor' }
@@ -13,7 +15,7 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
 
-  const [dbUser, wallet, reservations, positions, activeOffers] = await Promise.all([
+  const [dbUser, wallet, reservations, activeOffers] = await Promise.all([
     prisma.user.findUnique({ where: { id: user.id }, include: { investor_profile: true } }).catch(() => null),
     prisma.wallet.findUnique({ where: { user_id: user.id } }).catch(() => null),
     prisma.reservation.findMany({
@@ -22,10 +24,6 @@ export default async function DashboardPage() {
       orderBy: { created_at: 'desc' },
       take: 5,
     }).catch(() => []),
-    prisma.investorPosition.findMany({
-      where:   { user_id: user.id },
-      include: { offer: { include: { issuer: true } }, token_asset: true },
-    }).catch(() => []),
     prisma.offer.findMany({
       where: { status: 'active' },
       take:  3,
@@ -33,11 +31,7 @@ export default async function DashboardPage() {
     }).catch(() => []),
   ])
 
-  const totalInvested = reservations
-    .filter(r => ['confirmed','settled'].includes(r.status ?? ''))
-    .reduce((s, r) => s + (r.amount_brz ?? 0), 0)
-
-  const pendingCount  = reservations.filter(r => r.status === 'pending').length
+  const pendingCount  = reservations.filter(r => ['pending', 'pending_escrow'].includes(r.status ?? '')).length
   const profile       = dbUser?.investor_profile
   const kycComplete   = !!profile
   const hasWallet     = !!wallet
@@ -53,7 +47,7 @@ export default async function DashboardPage() {
           </h1>
           <p className="text-white/50 text-sm mt-1">Seu painel de investimentos Kate Equity</p>
         </div>
-        <Link href="/offers" className="hidden sm:flex items-center gap-2 bg-kate-yellow text-kate-dark-blue font-bold px-4 py-2.5 rounded-xl text-sm hover:brightness-110 transition-all">
+        <Link href="/offers" className="hidden sm:flex items-center gap-2 bg-kate-orange text-kate-navy font-bold px-4 py-2.5 rounded-xl text-sm hover:brightness-110 transition-all">
           Novas Oportunidades <ArrowRight size={14} />
         </Link>
       </div>
@@ -85,56 +79,28 @@ export default async function DashboardPage() {
       {/* Live Blockchain Balance (Client Component) */}
       {hasWallet && <LiveBalanceCard />}
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {[
-          {
-            icon: TrendingUp,
-            label: 'Total Investido',
-            value: `R$ ${totalInvested.toLocaleString('pt-BR')}`,
-            color: 'text-green-400',
-            bg:    'bg-green-400/10',
-          },
-          {
-            icon: Star,
-            label: 'Posições',
-            value: positions.length.toString(),
-            color: 'text-kate-yellow',
-            bg:    'bg-kate-yellow/10',
-          },
-          {
-            icon: Clock,
-            label: 'Pendentes',
-            value: pendingCount.toString(),
-            color: 'text-amber-400',
-            bg:    'bg-amber-400/10',
-          },
-          {
-            icon: Wallet,
-            label: 'Wallet Stellar',
-            value: hasWallet ? 'Ativa' : 'Inativa',
-            color: hasWallet ? 'text-green-400' : 'text-white/30',
-            bg:    hasWallet ? 'bg-green-400/10' : 'bg-white/5',
-          },
-        ].map(k => (
-          <div key={k.label} className="bg-kate-dark-blue border border-white/10 rounded-2xl p-5 flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-xl ${k.bg} flex items-center justify-center shrink-0`}>
-              <k.icon size={22} className={k.color} />
-            </div>
-            <div>
-              <p className="text-white/40 text-xs mb-0.5">{k.label}</p>
-              <p className={`font-bold text-lg ${k.color}`}>{k.value}</p>
-            </div>
-          </div>
-        ))}
+      {/* 3 Premium KPI Cards (Client Component — reads live data via tRPC) */}
+      <DashboardKPICards />
+
+      {/* Portfolio Table (Client Component) */}
+      <div className="mb-8">
+        <PortfolioTable />
       </div>
 
+      {/* Bottom grid: Reservations + Offers sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Reservations */}
         <div className="lg:col-span-2 bg-kate-dark-blue border border-white/10 rounded-2xl p-6">
           <div className="flex justify-between items-center mb-5">
             <h2 className="font-bold text-white">Minhas Reservas</h2>
-            <span className="text-xs text-white/40">{reservations.length} total</span>
+            <div className="flex items-center gap-2">
+              {pendingCount > 0 && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-400/10 text-amber-400">
+                  {pendingCount} pendente{pendingCount > 1 ? 's' : ''}
+                </span>
+              )}
+              <span className="text-xs text-white/40">{reservations.length} total</span>
+            </div>
           </div>
           {reservations.length === 0 ? (
             <div className="text-center py-10">
@@ -148,15 +114,24 @@ export default async function DashboardPage() {
             <div className="space-y-3">
               {reservations.map(r => {
                 const statusColor: Record<string, string> = {
-                  pending:   'text-amber-400 bg-amber-400/10',
-                  confirmed: 'text-blue-400 bg-blue-400/10',
-                  settled:   'text-green-400 bg-green-400/10',
-                  refunded:  'text-white/40 bg-white/5',
-                  withdrawn: 'text-red-400 bg-red-400/10',
+                  pending:        'text-amber-400 bg-amber-400/10',
+                  pending_escrow: 'text-amber-400 bg-amber-400/10',
+                  confirmed:      'text-blue-400 bg-blue-400/10',
+                  settled:        'text-green-400 bg-green-400/10',
+                  refunded:       'text-white/40 bg-white/5',
+                  withdrawn:      'text-red-400 bg-red-400/10',
                 }
                 const sc = statusColor[r.status ?? 'pending'] ?? statusColor['pending']
+                const statusLabels: Record<string, string> = {
+                  pending: 'Pendente',
+                  pending_escrow: 'Escrow',
+                  confirmed: 'Confirmada',
+                  settled: 'Liquidada',
+                  refunded: 'Reembolsada',
+                  withdrawn: 'Desistência',
+                }
                 return (
-                  <div key={r.id} className="flex items-center justify-between p-3 bg-white/3 hover:bg-white/5 rounded-xl transition-colors">
+                  <div key={r.id} className="flex items-center justify-between p-3 bg-white/[0.02] hover:bg-white/[0.04] rounded-xl transition-colors">
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-medium text-sm truncate">
                         {r.offer.issuer.trade_name || r.offer.issuer.legal_name}
@@ -168,7 +143,7 @@ export default async function DashboardPage() {
                     <div className="text-right ml-3">
                       <p className="text-white font-bold text-sm">R$ {(r.amount_brz ?? 0).toLocaleString('pt-BR')}</p>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${sc}`}>
-                        {r.status}
+                        {statusLabels[r.status ?? 'pending'] ?? r.status}
                       </span>
                     </div>
                   </div>
@@ -187,7 +162,7 @@ export default async function DashboardPage() {
             <div className="space-y-3">
               {activeOffers.map(o => (
                 <Link key={o.id} href={`/offers/${o.id}`}
-                  className="block p-3 bg-white/3 hover:bg-white/5 rounded-xl transition-colors group">
+                  className="block p-3 bg-white/[0.02] hover:bg-white/[0.04] rounded-xl transition-colors group">
                   <p className="text-white font-medium text-sm group-hover:text-kate-yellow transition-colors truncate">
                     {o.issuer.trade_name || o.issuer.legal_name}
                   </p>

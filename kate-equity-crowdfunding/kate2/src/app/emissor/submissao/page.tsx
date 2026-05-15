@@ -214,7 +214,7 @@ export default function SubmissaoWizardPage() {
           <p className="text-white/60 mb-8">
             Nossa equipe analisará sua submissão e entrará em contato em até 7 dias úteis.
           </p>
-          <Link href="/dashboard" className="px-6 py-3 bg-kate-yellow text-kate-dark-blue font-bold rounded-xl hover:opacity-90 transition-opacity">
+          <Link href="/dashboard" className="px-6 py-3 bg-kate-orange text-kate-navy font-bold rounded-xl hover:opacity-90 transition-opacity">
             Ir para o dashboard
           </Link>
         </div>
@@ -268,7 +268,7 @@ export default function SubmissaoWizardPage() {
                   }`}
                 >
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                    active ? 'bg-kate-yellow text-kate-dark-blue'
+                    active ? 'bg-kate-orange text-kate-navy'
                     : done  ? 'bg-green-400/20 text-green-400'
                     : 'bg-white/10 text-white/30'
                   }`}>
@@ -412,7 +412,7 @@ export default function SubmissaoWizardPage() {
               <button
                 onClick={handleNext}
                 disabled={isLoading}
-                className="flex items-center gap-2 px-6 py-3 bg-kate-yellow text-kate-dark-blue font-bold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="flex items-center gap-2 px-6 py-3 bg-kate-orange text-kate-navy font-bold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {isLoading ? <Loader2 size={16} className="animate-spin" /> : null}
                 Próximo <ChevronRight size={18} />

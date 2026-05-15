@@ -111,7 +111,7 @@ export default function CaptarPage() {
             Nossa equipe analisará seu projeto e entrará em contato em até 7 dias úteis no e-mail <strong className="text-white">{form.email}</strong>.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/offers" className="px-6 py-3 bg-kate-yellow text-kate-dark-blue font-bold rounded-xl hover:opacity-90 transition-opacity">
+            <Link href="/offers" className="px-6 py-3 bg-kate-orange text-kate-navy font-bold rounded-xl hover:opacity-90 transition-opacity">
               Ver oportunidades
             </Link>
             <Link href="/" className="px-6 py-3 border border-white/20 text-white rounded-xl hover:bg-white/5 transition-colors">
@@ -301,7 +301,7 @@ export default function CaptarPage() {
             <button
               type="submit"
               disabled={createIssuer.isPending}
-              className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-kate-yellow text-kate-dark-blue font-bold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 text-base"
+              className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-kate-orange text-kate-navy font-bold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 text-base"
             >
               {createIssuer.isPending ? (
                 <><Loader2 className="w-5 h-5 animate-spin" /> Enviando pré-inscrição...</>
