@@ -297,7 +297,12 @@ export class SimulatedStellarClient {
   }
 
   static generateKeypair(): StellarKeypair {
-    const id = Math.random().toString(36).substring(2, 10).toUpperCase()
+    const buffer = new Uint8Array(4)
+    crypto.getRandomValues(buffer)
+    const id = Array.from(buffer)
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+      .toUpperCase()
     return {
       publicKey: `G${id}SIMULATED000000000000000000000000000000000`,
       secretKey: `S${id}SIMULATED000000000000000000000000000000000`,
@@ -575,8 +580,6 @@ export async function executeDefiSwapAndInvest(
   tx.sign(userKeypair)
   const result = await server.submitTransaction(tx)
 
-  console.log(`[DeFi] SDEX swap: ${amountUSDC} USDC → ${expectedBRZ} BRZ → Escrow | tx: ${result.hash}`)
-
   return {
     success: true,
     txHash: result.hash,
@@ -617,8 +620,6 @@ export async function executeDirectBrzInvest(
 
   tx.sign(userKeypair)
   const result = await server.submitTransaction(tx)
-
-  console.log(`[Invest] Direct BRZ: ${amount} BRZ → Escrow | tx: ${result.hash}`)
 
   return {
     success: true,
