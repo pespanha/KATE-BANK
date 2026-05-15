@@ -57,7 +57,7 @@ export function Navbar() {
               Entrar
             </Link>
             <Link
-              href="/auth/cadastro"
+              href="/onboarding"
               className="text-sm font-bold bg-kate-orange text-kate-navy rounded-lg px-4 py-2 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-kate-orange/25 transition-all"
             >
               Criar Conta
@@ -100,7 +100,7 @@ export function Navbar() {
               className="text-center py-2.5 border border-white/15 rounded-lg text-sm font-medium text-white hover:bg-white/[0.04] transition-all">
               Entrar
             </Link>
-            <Link href="/auth/cadastro" onClick={() => setMobileOpen(false)}
+            <Link href="/onboarding" onClick={() => setMobileOpen(false)}
               className="text-center py-2.5 bg-kate-orange text-kate-navy rounded-lg text-sm font-bold hover:brightness-110 transition-all">
               Criar Conta
             </Link>

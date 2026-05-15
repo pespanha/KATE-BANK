@@ -118,7 +118,7 @@ export default function LoginPage() {
 
           <p className="text-center text-sm text-white/40 mt-6">
             Não tem conta?{' '}
-            <Link href="/auth/cadastro" className="text-kate-yellow hover:text-kate-yellow/80 font-medium">
+            <Link href="/onboarding" className="text-kate-yellow hover:text-kate-yellow/80 font-medium">
               Criar conta gratuita
             </Link>
           </p>

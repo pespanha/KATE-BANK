@@ -250,7 +250,7 @@ export default async function HomePage() {
           <p className="text-white/50 mb-8">
             Crie sua conta gratuitamente, complete o KYC e comece a investir em minutos.
           </p>
-          <Link href="/auth/cadastro"
+          <Link href="/onboarding"
             className="inline-flex items-center gap-2 bg-kate-orange text-kate-navy font-bold px-8 py-4 rounded-xl text-lg hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-kate-yellow/30 transition-all">
             Criar Conta Gratuita <ArrowRight size={20} />
           </Link>
