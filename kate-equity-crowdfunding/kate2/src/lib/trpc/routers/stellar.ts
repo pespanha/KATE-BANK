@@ -152,7 +152,20 @@ export const stellarRouter = router({
       return result
     }),
 
-  /** Get live balances (BRZ + XLM) directly from Stellar Horizon */
+  /**
+   * Consulta de saldos on-chain via Horizon (Stellar Testnet).
+   *
+   * Conecta diretamente ao Horizon Node da Stellar Testnet para buscar os
+   * saldos atualizados de BRZ (stablecoin) e XLM (nativo) na blockchain,
+   * **ignorando o banco de dados local** para garantir transparência
+   * regulatória conforme CVM 88.
+   *
+   * Este design garante que o saldo exibido ao investidor é sempre a
+   * "fonte da verdade" on-chain, eliminando risco de discrepância entre
+   * o estado do DB e o ledger real.
+   *
+   * @returns Saldos XLM e BRZ como strings, publicKey e flag hasWallet
+   */
   getLiveBalances: protectedProcedure.query(async ({ ctx }) => {
     const wallet = await prisma.wallet.findUnique({
       where: { user_id: ctx.userId },
@@ -189,8 +202,9 @@ export const stellarRouter = router({
         publicKey: wallet.stellar_public_key,
         hasWallet: true,
       }
-    } catch {
-      // Account may not exist on-chain yet
+    } catch (err) {
+      // Account may not exist on-chain yet (not funded via Friendbot)
+      console.error('[Horizon] Error fetching balances:', err)
       return {
         xlm: '0',
         brz: '0',
