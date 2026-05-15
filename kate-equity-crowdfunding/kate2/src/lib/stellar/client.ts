@@ -390,8 +390,8 @@ export class SimulatedStellarClient {
  * This account issues the BRZ stablecoin on the Stellar Testnet.
  * In production, this would be a real regulated stablecoin issuer.
  */
-const BANK_BRZ_SECRET = 'SCZANGBA5YHTNYVVV3C7CAZMCLN4MFOZPUDZ4INPMAG2OFBQRQGOHEJI'
-const BANK_BRZ_PUBLIC = 'GBXM2IXKBNAOSOA64GCKBNHFSFCJUXE4SQFGFPJOXVGWGGURJ7KVFLIT'
+const BANK_BRZ_SECRET = 'SDXERWYEJSRHKN7LPYYXVPULKDYNH5C3HQB5PU2PZK6FPNMIVPQOTDAQ'
+const BANK_BRZ_PUBLIC = 'GBZSVPMLAFST5U6BNSPM5ISWY7DL7HVETNFHZWZD3A63KMMO6MO7T4WH'
 
 /**
  * Simulate a PIX deposit that mints BRZ stablecoins to a user's Stellar wallet.
