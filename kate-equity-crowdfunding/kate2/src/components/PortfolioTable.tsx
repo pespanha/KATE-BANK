@@ -27,7 +27,7 @@ export function PortfolioTable() {
 
   // Calculate total RWA value
   const totalRWA = items.reduce((sum, p) => {
-    const qty = p.token_quantity ?? 0
+    const qty = p.quantity ?? 0
     const price = p.offer?.unit_price ?? 0
     return sum + qty * price
   }, 0)
@@ -77,18 +77,18 @@ export function PortfolioTable() {
           {/* Rows */}
           <div className="divide-y divide-white/[0.04]">
             {items.map(pos => {
-              const qty = pos.token_quantity ?? 0
+              const qty = pos.quantity ?? 0
               const price = pos.offer?.unit_price ?? 0
               const value = qty * price
               const symbol = pos.token_asset?.token_symbol ?? '—'
               const company = pos.offer?.issuer?.trade_name || pos.offer?.issuer?.legal_name || '—'
 
               const statusMap: Record<string, { label: string; cls: string }> = {
-                active:    { label: 'Ativo',    cls: 'text-green-400 bg-green-400/10' },
-                pending:   { label: 'Pendente', cls: 'text-amber-400 bg-amber-400/10' },
-                settled:   { label: 'Liquidado', cls: 'text-blue-400 bg-blue-400/10' },
+                primary:                  { label: 'Ativo',       cls: 'text-green-400 bg-green-400/10' },
+                subsequent_transaction:   { label: 'Secundário',  cls: 'text-blue-400 bg-blue-400/10' },
+                private_transfer:         { label: 'Transferido', cls: 'text-amber-400 bg-amber-400/10' },
               }
-              const st = statusMap[pos.status ?? 'active'] ?? statusMap['active']
+              const st = statusMap[pos.acquisition_origin ?? 'primary'] ?? statusMap['primary']
 
               return (
                 <Link

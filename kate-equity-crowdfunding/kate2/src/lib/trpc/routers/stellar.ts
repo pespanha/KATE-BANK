@@ -176,11 +176,10 @@ export const stellarRouter = router({
         if (bal.asset_type === 'native') {
           xlm = bal.balance
         }
-        if (
-          bal.asset_type !== 'native' &&
-          (bal as StellarSdk.Horizon.HorizonApi.BalanceLineAsset).asset_code === 'BRZ'
-        ) {
-          brz = (bal as StellarSdk.Horizon.HorizonApi.BalanceLineAsset).balance
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const assetBal = bal as any
+        if (bal.asset_type !== 'native' && assetBal.asset_code === 'BRZ') {
+          brz = assetBal.balance
         }
       }
 

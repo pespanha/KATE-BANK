@@ -34,7 +34,7 @@ export const walletRouter = router({
     })
     if (existing) return { publicKey: existing.stellar_public_key, alreadyExisted: true }
 
-    const { publicKey } = await createWalletForUser(ctx.userId, stellarEnv)
+    const { publicKey } = await createWalletForUser(ctx.userId)
 
     // On testnet/simulation: fund with Friendbot
     if (stellarEnv.STELLAR_USE_TESTNET !== 'false') {

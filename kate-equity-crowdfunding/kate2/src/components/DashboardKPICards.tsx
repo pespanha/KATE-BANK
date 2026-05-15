@@ -31,7 +31,7 @@ export function DashboardKPICards() {
   // Calculate values
   const brzBalance = parseFloat(balances.data?.brz ?? '0')
   const totalRWA = (positions.data ?? []).reduce((sum, p) => {
-    return sum + (p.token_quantity ?? 0) * (p.offer?.unit_price ?? 0)
+    return sum + (p.quantity ?? 0) * (p.offer?.unit_price ?? 0)
   }, 0)
   const totalInvested = (reservations.data ?? [])
     .filter(r => ['confirmed', 'settled', 'pending_escrow'].includes(r.status ?? ''))
