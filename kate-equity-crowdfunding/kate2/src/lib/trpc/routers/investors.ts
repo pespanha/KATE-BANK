@@ -2,12 +2,25 @@ import { z } from 'zod'
 import { router, protectedProcedure, adminProcedure } from '../init'
 
 export const investorsRouter = router({
-  /** Get current investor profile */
+  /** Get current user profile with investor data */
   getMyProfile: protectedProcedure.query(async ({ ctx }) => {
-    return ctx.prisma.investorProfile.findUnique({
-      where: { user_id: ctx.userId },
+    return ctx.prisma.user.findUnique({
+      where: { id: ctx.userId },
+      include: { investor_profile: true },
     })
   }),
+
+  /** Update user profile (name) */
+  updateMyProfile: protectedProcedure
+    .input(z.object({
+      full_name: z.string().min(2).max(200),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.prisma.user.update({
+        where: { id: ctx.userId },
+        data: { full_name: input.full_name },
+      })
+    }),
 
   /** Create or update investor profile (KYC data) */
   upsertProfile: protectedProcedure
