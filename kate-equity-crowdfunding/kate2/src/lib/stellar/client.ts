@@ -399,17 +399,30 @@ const BANK_BRZ_SECRET = 'SDXERWYEJSRHKN7LPYYXVPULKDYNH5C3HQB5PU2PZK6FPNMIVPQOTDA
 const BANK_BRZ_PUBLIC = 'GBZSVPMLAFST5U6BNSPM5ISWY7DL7HVETNFHZWZD3A63KMMO6MO7T4WH'
 
 /**
- * Simulate a PIX deposit that mints BRZ stablecoins to a user's Stellar wallet.
+ * Anchor Backend Simulation (SEP-24) — Depósito PIX → BRZ na Stellar Testnet.
  *
- * Steps:
- *   1. Ensure bank account is funded on Testnet (Friendbot, idempotent)
- *   2. User establishes ChangeTrust for BRZ asset (signed with user's secret)
- *   3. Bank sends `amount` BRZ to user (signed with bank's secret)
+ * Simula o fluxo completo de um Anchor regulado que recebe uma transferência
+ * PIX (off-chain) e emite stablecoins BRZ (on-chain) na conta do investidor,
+ * seguindo a especificação SEP-24 (Interactive Anchor/Client Deposit).
  *
- * @param userPublicKey  - Stellar public key of the investor
- * @param userSecretKey  - Stellar secret key of the investor (custodial)
- * @param amount         - Amount in BRZ (string, e.g. "1000")
- * @returns txHash of the payment transaction
+ * Etapas on-chain:
+ *  1. **ChangeTrust** — O investidor autoriza a recepção do ativo BRZ
+ *     emitido pela âncora (operação assinada com a secret key do investidor).
+ *  2. **Payment** — A âncora emite (mint) a quantidade de BRZ correspondente
+ *     ao valor do PIX, enviando diretamente ao endereço do investidor
+ *     (operação assinada com a secret key da âncora / banco emissor).
+ *  3. **Submit** — Ambas as transações são submetidas ao Horizon (Testnet).
+ *
+ * @remarks
+ * Em produção, a âncora seria um emissor regulado de stablecoin (ex.: Transfero)
+ * e a emissão seguiria o fluxo SEP-24 completo com KYC, callback e custódia
+ * segregada. A secret key do investidor seria gerenciada via KMS, não em DB.
+ *
+ * @param userPublicKey  - Endereço Stellar do investidor (G...)
+ * @param userSecretKey  - Chave secreta do investidor (S...) — custódia MVP
+ * @param amount         - Montante em BRZ (string, ex.: "1000" = R$ 1.000)
+ * @returns Hash da transação de pagamento + metadados do ativo emitido
+ * @throws {Error} Se a keypair for inválida ou o Horizon rejeitar a transação
  */
 export async function simulatePixToBRZ(
   userPublicKey: string,
@@ -419,45 +432,47 @@ export async function simulatePixToBRZ(
   const server = new StellarSdk.Horizon.Server(TESTNET_URL)
   const networkPassphrase = StellarSdk.Networks.TESTNET
 
+  // ── Keypair validation ──────────────────────────────────────────────────────
   let bankKeypair: StellarSdk.Keypair
   let userKeypair: StellarSdk.Keypair
 
   try {
     bankKeypair = StellarSdk.Keypair.fromSecret(BANK_BRZ_SECRET)
   } catch (err) {
-    console.error('[BRZ] Invalid BANK secret key:', err)
+    console.error('[SEP-24] Invalid Anchor (bank) secret key:', err)
     throw new Error('Configuração do banco BRZ inválida. Contate o administrador.')
   }
 
   try {
     userKeypair = StellarSdk.Keypair.fromSecret(userSecretKey)
   } catch (err) {
-    console.error('[BRZ] Invalid USER secret key:', err)
+    console.error('[SEP-24] Invalid investor secret key:', err)
     throw new Error('Chave da wallet inválida. Recrie sua wallet no onboarding.')
   }
 
+  // BRZ asset issued by the Anchor (bank)
   const brzAsset = new StellarSdk.Asset('BRZ', BANK_BRZ_PUBLIC)
 
-  // 1. Ensure bank account exists on Testnet (idempotent — Friendbot returns 400 if already funded)
+  // ── Pre-flight: ensure both accounts exist on Testnet (Friendbot) ───────────
   try {
     await server.loadAccount(BANK_BRZ_PUBLIC)
   } catch {
-    console.log('[BRZ] Funding bank account via Friendbot...')
+    console.info('[SEP-24] Funding Anchor account via Friendbot...')
     await fetch(`https://friendbot.stellar.org?addr=${BANK_BRZ_PUBLIC}`)
-    // Wait briefly for ledger propagation
     await new Promise(r => setTimeout(r, 2000))
   }
 
-  // Also ensure user account is funded
   try {
     await server.loadAccount(userPublicKey)
   } catch {
-    console.log('[BRZ] Funding user account via Friendbot...')
+    console.info('[SEP-24] Funding investor account via Friendbot...')
     await fetch(`https://friendbot.stellar.org?addr=${userPublicKey}`)
     await new Promise(r => setTimeout(r, 2000))
   }
 
-  // 2. User establishes ChangeTrust for BRZ (allows receiving the asset)
+  // ── Step 1: Build ChangeTrust Operation for BRZ Asset ───────────────────────
+  // The investor must authorize receipt of the BRZ token before the Anchor
+  // can send it. This creates a trustline entry in the investor's account.
   const userAccount = await server.loadAccount(userPublicKey)
   const trustTx = new StellarSdk.TransactionBuilder(userAccount, {
     fee: StellarSdk.BASE_FEE,
@@ -466,7 +481,7 @@ export async function simulatePixToBRZ(
     .addOperation(
       StellarSdk.Operation.changeTrust({
         asset: brzAsset,
-        limit: '100000000', // 100M BRZ max
+        limit: '100000000', // 100M BRZ max trustline limit
       })
     )
     .setTimeout(30)
@@ -474,9 +489,11 @@ export async function simulatePixToBRZ(
 
   trustTx.sign(userKeypair)
   await server.submitTransaction(trustTx)
-  console.log(`[BRZ] Trustline established for ${userPublicKey}`)
+  console.info(`[SEP-24] Trustline BRZ established for ${userPublicKey}`)
 
-  // 3. Bank sends BRZ to user (simulates the PIX → mint)
+  // ── Step 2: Anchor issues Payment operation to User Public Key ──────────────
+  // The Anchor (bank) mints BRZ by sending a payment from its issuing account
+  // to the investor's address. This is the on-chain equivalent of "PIX received".
   const bankAccount = await server.loadAccount(BANK_BRZ_PUBLIC)
   const payTx = new StellarSdk.TransactionBuilder(bankAccount, {
     fee: StellarSdk.BASE_FEE,
@@ -486,7 +503,7 @@ export async function simulatePixToBRZ(
       StellarSdk.Operation.payment({
         destination: userPublicKey,
         asset: brzAsset,
-        amount, // e.g. "1000" = R$ 1.000
+        amount, // e.g. "1000" = R$ 1.000,00
       })
     )
     .addMemo(StellarSdk.Memo.text('PIX BRZ Deposit'))
@@ -494,8 +511,10 @@ export async function simulatePixToBRZ(
     .build()
 
   payTx.sign(bankKeypair)
+
+  // ── Step 3: Submit transaction to Horizon ───────────────────────────────────
   const result = await server.submitTransaction(payTx)
-  console.log(`[BRZ] Payment sent: ${amount} BRZ → ${userPublicKey} | tx: ${result.hash}`)
+  console.info(`[SEP-24] BRZ issued: ${amount} BRZ → ${userPublicKey} | tx: ${result.hash}`)
 
   return {
     success: true,
