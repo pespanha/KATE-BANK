@@ -135,11 +135,10 @@ export const offersRouter = router({
         select: { document_id: true, tx_hash: true },
       })
       // Return as a Set-friendly record: { [documentId]: txHash }
-      const map: Record<string, string> = {}
-      for (const a of accesses) {
-        map[a.document_id] = a.tx_hash ?? ''
-      }
-      return map
+      return accesses.reduce<Record<string, string>>((acc, a) => {
+        acc[a.document_id] = a.tx_hash ?? ''
+        return acc
+      }, {})
     }),
 
   /** Unlock a premium document via XLM micropayment on Stellar */
