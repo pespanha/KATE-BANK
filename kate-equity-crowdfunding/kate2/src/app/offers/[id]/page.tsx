@@ -27,26 +27,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function OfferDetailPage({ params }: Props) {
   const { id } = await params
 
-  const offer = await prisma.offer.findUnique({
-    where: { id },
-    include: {
-      issuer:                { include: { controllers: true } },
-      offer_documents:       true,
-      essential_offer_infos: { take: 1 },
-      token_assets:          true,
-      reservations: {
-        where:  { status: { in: ['confirmed', 'settled'] } },
-        select: { amount_brz: true, token_quantity: true },
+  const [offer, reservationAgg] = await Promise.all([
+    prisma.offer.findUnique({
+      where: { id },
+      include: {
+        issuer:                { include: { controllers: true } },
+        offer_documents:       true,
+        essential_offer_infos: { take: 1 },
+        token_assets:          true,
       },
-    },
-  }).catch(() => null)
+    }).catch(() => null),
+    prisma.reservation.aggregate({
+      where: { offer_id: id, status: { in: ['confirmed', 'settled'] } },
+      _sum: { amount_brz: true, token_quantity: true },
+      _count: { id: true },
+    }).catch(() => null)
+  ])
 
   if (!offer) notFound()
 
-  const raised       = offer.reservations.reduce((s, r) => s + (r.amount_brz ?? 0), 0)
-  const tokensIssued = offer.reservations.reduce((s, r) => s + (r.token_quantity ?? 0), 0)
+  const raised       = reservationAgg?._sum?.amount_brz ?? 0
+  const tokensIssued = reservationAgg?._sum?.token_quantity ?? 0
   const progress     = offer.max_target ? Math.min((raised / offer.max_target) * 100, 100) : 0
-  const investorCount = offer.reservations.length
+  const investorCount = reservationAgg?._count?.id ?? 0
   const tokenAsset   = offer.token_assets[0]
   const info         = offer.essential_offer_infos[0]
   const daysLeft     = offer.end_date
