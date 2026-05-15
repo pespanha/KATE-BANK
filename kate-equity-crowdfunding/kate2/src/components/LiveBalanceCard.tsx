@@ -55,7 +55,8 @@ export function LiveBalanceCard() {
         <button
           onClick={() => refetch()}
           disabled={isFetching}
-          className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+          aria-label="Atualizar saldos"
+          className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-kate-yellow"
           title="Atualizar saldos"
         >
           <RefreshCw size={14} className={`text-white/40 ${isFetching ? 'animate-spin' : ''}`} />
