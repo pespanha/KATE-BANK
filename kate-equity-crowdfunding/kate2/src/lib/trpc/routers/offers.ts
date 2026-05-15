@@ -141,11 +141,37 @@ export const offersRouter = router({
       }, {})
     }),
 
-  /** Unlock a premium document via XLM micropayment on Stellar */
+  /**
+   * Implementação do Protocolo x402 (Web3 Micropayments for Data Access).
+   *
+   * Esta função atua como um **Paywall B2B** on-chain. Ela cobra um
+   * micropagamento na rede Stellar em XLM da carteira do investidor para
+   * destravar documentos sensíveis do emissor (ex.: Valuation, Projeções
+   * Financeiras, Cap Table), servindo como **filtro anti-spam** e mecanismo
+   * de **monetização direta de dados corporativos**.
+   *
+   * Fluxo x402:
+   *  1. **Lookup** — Verifica se o documento existe e requer pagamento (isPremium)
+   *  2. **Idempotency** — Checa se o investidor já possui acesso (evita cobrança dupla)
+   *  3. **Payment** — Executa uma `Payment` operation de XLM (ativo nativo Stellar)
+   *     da carteira custodial do investidor para o endereço treasury da plataforma
+   *  4. **Memo** — Inclui `x402:{documentId}` como Memo para rastreabilidade on-chain
+   *  5. **Record** — Persiste o `tx_hash` no DB para auditoria e controle de acesso
+   *
+   * @remarks
+   * O padrão x402 é inspirado no HTTP status 402 (Payment Required). Em produção,
+   * o micropagamento poderia ser validado via middleware HTTP que intercepta a
+   * requisição ao storage (S3/R2) e exige prova de pagamento on-chain antes de
+   * servir o arquivo. A secret key do investidor seria gerenciada via KMS.
+   *
+   * @param input.documentId - UUID do documento premium a ser destravado
+   * @returns fileUrl para download + txHash da transação de pagamento
+   * @throws {Error} Se o documento não existir, a wallet estiver ausente ou o Horizon rejeitar a tx
+   */
   unlockPremiumDocument: protectedProcedure
     .input(z.object({ documentId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      // 1. Load the document
+      // Step 1: Lookup — load the document and validate premium status
       const doc = await ctx.prisma.offerDocument.findUnique({
         where: { id: input.documentId },
       })
@@ -154,7 +180,7 @@ export const offersRouter = router({
 
       const priceXLM = doc.priceXLM ?? 1 // default 1 XLM
 
-      // 2. Check if already unlocked
+      // Step 2: Idempotency check — prevent double-charge
       const existing = await ctx.prisma.documentAccess.findUnique({
         where: { user_id_document_id: { user_id: ctx.userId, document_id: input.documentId } },
       })
@@ -162,7 +188,7 @@ export const offersRouter = router({
         return { alreadyUnlocked: true, fileUrl: doc.file_url, txHash: existing.tx_hash }
       }
 
-      // 3. Get user's custodial wallet
+      // Step 3: Load investor's custodial wallet
       const wallet = await ctx.prisma.wallet.findUnique({
         where: { user_id: ctx.userId },
         select: { stellar_public_key: true, encrypted_secret: true },
@@ -171,14 +197,14 @@ export const offersRouter = router({
         throw new Error('Wallet não encontrada. Complete o onboarding primeiro.')
       }
 
-      // 4. Execute XLM payment on Stellar
+      // Step 4: Execute XLM micropayment on Stellar (x402 payment gate)
       const StellarSdk = await import('@stellar/stellar-sdk')
       const server = new StellarSdk.Horizon.Server('https://horizon-testnet.stellar.org')
       const networkPassphrase = StellarSdk.Networks.TESTNET
 
-      // Platform receives the micropayment (use KATE public key or a dedicated treasury)
+      // Platform treasury receives the micropayment
       const PLATFORM_PUBLIC = process.env.STELLAR_KATE_PUBLIC_KEY
-        || 'GBXM2IXKBNAOSOA64GCKBNHFSFCJUXE4SQFGFPJOXVGWGGURJ7KVFLIT' // fallback to BRZ bank
+        || 'GBXM2IXKBNAOSOA64GCKBNHFSFCJUXE4SQFGFPJOXVGWGGURJ7KVFLIT' // fallback
 
       const userKeypair = StellarSdk.Keypair.fromSecret(wallet.encrypted_secret)
       const userAccount = await server.loadAccount(wallet.stellar_public_key)
@@ -190,7 +216,7 @@ export const offersRouter = router({
         .addOperation(
           StellarSdk.Operation.payment({
             destination: PLATFORM_PUBLIC,
-            asset: StellarSdk.Asset.native(), // XLM
+            asset: StellarSdk.Asset.native(), // XLM (native Stellar asset)
             amount: priceXLM.toString(),
           })
         )
@@ -201,7 +227,7 @@ export const offersRouter = router({
       tx.sign(userKeypair)
       const result = await server.submitTransaction(tx)
 
-      // 5. Record access in DB
+      // Step 5: Record access for audit trail and future authorization
       await ctx.prisma.documentAccess.create({
         data: {
           user_id:     ctx.userId,
@@ -211,7 +237,7 @@ export const offersRouter = router({
         },
       })
 
-      console.log(`[x402] Document ${input.documentId} unlocked by ${ctx.userId} | ${priceXLM} XLM | tx: ${result.hash}`)
+      console.info(`[x402 Protocol] Micropayment validated on-chain. Document unlocked. | doc: ${input.documentId} | user: ${ctx.userId} | ${priceXLM} XLM | tx: ${result.hash}`)
 
       return {
         alreadyUnlocked: false,
