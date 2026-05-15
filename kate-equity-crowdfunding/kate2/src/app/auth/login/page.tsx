@@ -1,9 +1,10 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Lock, Mail, ArrowRight } from 'lucide-react'
 import { KateLogo } from '@/components/KateLogo'
+import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -13,14 +14,20 @@ export default function LoginPage() {
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState('')
 
+  // Redirect if already logged in
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) router.replace('/dashboard')
+    })
+  }, [router])
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
 
     try {
-      // TODO: Supabase signIn
-      const { createClient } = await import('@/lib/supabase/client')
       const supabase = createClient()
       const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
 

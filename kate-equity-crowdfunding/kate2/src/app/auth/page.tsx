@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signInUser } from '@/app/actions/auth';
 import { KateLogo } from '@/components/KateLogo';
+import { createClient } from '@/lib/supabase/client';
 
 export default function AuthPage() {
   const [email, setEmail] = useState('');
@@ -12,6 +13,14 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const router = useRouter();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) router.replace('/dashboard');
+    });
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
