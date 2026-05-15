@@ -6,8 +6,22 @@ const FRIENDBOT_URL = 'https://friendbot.stellar.org'
 // ─── Core: Generate & Fund ────────────────────────────────────────────────────
 
 /**
- * Generate a new Stellar keypair and fund it via Friendbot (Testnet).
- * Returns both keys — the caller decides what to persist.
+ * Gera uma Keypair Stellar (Ed25519) via Stellar SDK e faz uma chamada nativa
+ * à API do Friendbot na Testnet para fundear a conta com 10.000 XLM de teste,
+ * preparando-a para receber os tokens da âncora (BRZ, security tokens, etc.).
+ *
+ * Fluxo:
+ *  1. `Keypair.random()` — gera par de chaves criptográficas Ed25519
+ *  2. `Friendbot` — ativa a conta na Stellar Testnet (cria a entrada no ledger)
+ *  3. Retorna `{ publicKey, secretKey }` para que o chamador decida a persistência
+ *
+ * @remarks
+ * Em produção, a ativação seria feita por uma conta patrocinadora (sponsor)
+ * via `CREATE_ACCOUNT` op, e a secret key seria gerenciada por um KMS
+ * (AWS KMS, HashiCorp Vault) em vez de armazenada em texto plano.
+ *
+ * @returns Objeto com `publicKey` (endereço G...) e `secretKey` (S...)
+ * @throws {Error} Se o Friendbot falhar (ex.: rate limit ou rede indisponível)
  */
 export async function generateAndFundWallet(): Promise<{
   publicKey: string
@@ -27,7 +41,7 @@ export async function generateAndFundWallet(): Promise<{
     )
   }
 
-  console.log(`[Stellar] Wallet funded on Testnet: ${publicKey}`)
+  console.info(`[Stellar] Account funded via Friendbot: ${publicKey}`)
   return { publicKey, secretKey }
 }
 
