@@ -575,8 +575,6 @@ export async function executeDefiSwapAndInvest(
   tx.sign(userKeypair)
   const result = await server.submitTransaction(tx)
 
-  console.log(`[DeFi] SDEX swap: ${amountUSDC} USDC → ${expectedBRZ} BRZ → Escrow | tx: ${result.hash}`)
-
   return {
     success: true,
     txHash: result.hash,
@@ -617,8 +615,6 @@ export async function executeDirectBrzInvest(
 
   tx.sign(userKeypair)
   const result = await server.submitTransaction(tx)
-
-  console.log(`[Invest] Direct BRZ: ${amount} BRZ → Escrow | tx: ${result.hash}`)
 
   return {
     success: true,
