@@ -27,7 +27,6 @@ export async function middleware(request: NextRequest) {
   // Protect investor routes
   if (request.nextUrl.pathname.startsWith('/dashboard') ||
       request.nextUrl.pathname.startsWith('/portfolio') ||
-      request.nextUrl.pathname.startsWith('/onboarding') ||
       request.nextUrl.pathname.startsWith('/checkout')) {
     if (!user) {
       return NextResponse.redirect(new URL('/auth/login', request.url))
