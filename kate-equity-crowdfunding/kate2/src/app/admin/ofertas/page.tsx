@@ -24,7 +24,10 @@ export default async function AdminOfertasPage() {
     include: {
       issuer:       true,
       token_assets: true,
-      reservations: { select: { amount_brz: true, status: true } },
+      reservations: {
+        where:  { status: { in: ['confirmed', 'settled'] } },
+        select: { amount_brz: true, status: true },
+      },
     },
     orderBy: { created_at: 'desc' },
   }).catch(() => [])
@@ -59,7 +62,7 @@ export default async function AdminOfertasPage() {
               </tr>
             )}
             {offers.map(offer => {
-              const confirmed = offer.reservations.filter(r => ['confirmed','settled'].includes(r.status ?? ''))
+              const confirmed = offer.reservations
               const raised = confirmed.reduce((s, r) => s + (r.amount_brz ?? 0), 0)
               const progress = offer.max_target ? Math.min((raised / offer.max_target) * 100, 100) : 0
               const st = statusLabel[offer.status ?? 'draft'] ?? statusLabel.draft

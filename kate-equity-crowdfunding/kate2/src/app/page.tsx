@@ -58,7 +58,13 @@ const steps = [
 export default async function HomePage() {
   const liveOffers = await prisma.offer.findMany({
     where:   { status: 'active' },
-    include: { issuer: true, reservations: { select: { amount_brz: true, status: true } } },
+    include: {
+      issuer: true,
+      reservations: {
+        where: { status: { in: ['confirmed', 'settled'] } },
+        select: { amount_brz: true, status: true },
+      },
+    },
     take:    3,
     orderBy: { created_at: 'desc' },
   }).catch(() => [])
@@ -144,9 +150,7 @@ export default async function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {liveOffers.map(offer => {
-              const raised = offer.reservations
-                .filter(r => ['confirmed','settled'].includes(r.status ?? ''))
-                .reduce((s, r) => s + (r.amount_brz ?? 0), 0)
+              const raised = offer.reservations.reduce((s, r) => s + (r.amount_brz ?? 0), 0)
               const progress = offer.max_target ? Math.min((raised / offer.max_target) * 100, 100) : 0
 
               return (
